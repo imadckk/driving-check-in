@@ -10,6 +10,7 @@
     justify-content: center;
     position: relative;
     margin: 0 auto;
+    transition: all 0.3s ease;
 }
 
 /* 3D Extrude Effect */
@@ -17,7 +18,9 @@
     box-shadow: 
         0 4px 8px rgba(0, 0, 0, 0.3),
         inset 0 1px 0 rgba(255, 255, 255, 0.2),
-        inset 0 -1px 0 rgba(0, 0, 0, 0.8);
+        inset 0 -1px 0 rgba(0, 0, 0, 0.8),
+        0 0 0 2px #333333,
+        0 6px 0 2px #222222;
     transform: perspective(500px) rotateX(5deg);
     transition: all 0.3s ease;
 }
@@ -25,14 +28,15 @@
 .css-3d::before {
     content: '';
     position: absolute;
-    top: -2px;
-    left: -2px;
-    right: -2px;
-    bottom: -2px;
+    top: -4px;
+    left: -4px;
+    right: -4px;
+    bottom: -8px;
     background: linear-gradient(135deg, #666666 0%, #333333 50%, #666666 100%);
-    border-radius: 10px;
+    border-radius: 12px;
     z-index: -1;
-    opacity: 0.8;
+    opacity: 0.9;
+    filter: blur(2px);
 }
 
 .css-3d:hover {
@@ -40,7 +44,9 @@
     box-shadow: 
         0 6px 12px rgba(0, 0, 0, 0.4),
         inset 0 1px 0 rgba(255, 255, 255, 0.3),
-        inset 0 -1px 0 rgba(0, 0, 0, 0.9);
+        inset 0 -1px 0 rgba(0, 0, 0, 0.9),
+        0 0 0 2px #333333,
+        0 8px 0 2px #222222;
 }
 
 .plate-text {
@@ -51,6 +57,7 @@
     letter-spacing: 2px;
     text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
     text-transform: uppercase;
+    transition: all 0.3s ease;
 }
 
 /* Empty plate state */
@@ -69,9 +76,52 @@
     right: 0;
     height: 30%;
     background: linear-gradient(135deg, 
-        rgba(255, 255, 255, 0.1) 0%, 
-        rgba(255, 255, 255, 0.05) 50%, 
+        rgba(255, 255, 255, 0.15) 0%, 
+        rgba(255, 255, 255, 0.08) 50%, 
         rgba(255, 255, 255, 0) 100%);
     border-radius: 5px 5px 0 0;
     pointer-events: none;
+}
+
+/* Metallic border effect */
+.car-plate::before {
+    content: '';
+    position: absolute;
+    top: -6px;
+    left: -6px;
+    right: -6px;
+    bottom: -10px;
+    background: linear-gradient(45deg, 
+        #888888 0%, 
+        #cccccc 25%, 
+        #888888 50%, 
+        #cccccc 75%, 
+        #888888 100%);
+    border-radius: 14px;
+    z-index: -2;
+    opacity: 0.7;
+}
+
+/* Pulse animation for empty plate */
+.car-plate.empty {
+    animation: pulse-empty 2s infinite;
+}
+
+@keyframes pulse-empty {
+    0%, 100% { 
+        box-shadow: 
+            0 4px 8px rgba(0, 0, 0, 0.3),
+            inset 0 1px 0 rgba(255, 255, 255, 0.2),
+            inset 0 -1px 0 rgba(0, 0, 0, 0.8),
+            0 0 0 2px #333333,
+            0 6px 0 2px #222222;
+    }
+    50% { 
+        box-shadow: 
+            0 4px 8px rgba(0, 0, 0, 0.3),
+            inset 0 1px 0 rgba(255, 255, 255, 0.2),
+            inset 0 -1px 0 rgba(0, 0, 0, 0.8),
+            0 0 0 2px #555555,
+            0 6px 0 2px #444444;
+    }
 }
