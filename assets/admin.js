@@ -84,7 +84,7 @@ function displayCheckins() {
     tableBody.innerHTML = allCheckins.map(checkin => `
         <tr class="hover:bg-gray-50">
             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                ${formatDateTime(checkin.timestamp)}
+                ${formatToLocalDateTime(checkin.timestamp)}
             </td>
             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                 ${escapeHtml(checkin.instructor_id)}
@@ -105,7 +105,7 @@ function displayCheckins() {
     mobileCards.innerHTML = allCheckins.map(checkin => `
         <div class="bg-white rounded-lg shadow-md p-4 border-l-4 border-blue-500">
             <div class="flex justify-between items-start mb-2">
-                <div class="text-sm text-gray-500">${formatDateTime(checkin.timestamp)}</div>
+                <div class="text-sm text-gray-500">${formatToLocalDateTime(checkin.timestamp)}</div>
                 <span class="bg-blue-100 text-blue-800 text-xs font-medium px-2 py-1 rounded">
                     ${escapeHtml(checkin.car_plate)}
                 </span>
@@ -165,13 +165,15 @@ function escapeHtml(unsafe) {
         .replace(/'/g, "&#039;");
 }
 
-function formatDateTime(timestamp) {
-    const date = new Date(timestamp);
+// Convert ISO timestamp to device's local date and time
+function formatToLocalDateTime(isoString) {
+    const date = new Date(isoString);
     return date.toLocaleString();
 }
 
-function formatDate(timestamp) {
-    const date = new Date(timestamp);
+// Format date only (for filtering)
+function formatToLocalDate(isoString) {
+    const date = new Date(isoString);
     return date.toLocaleDateString();
 }
 
@@ -252,7 +254,7 @@ function generatePDF() {
             doc.rect(margin, yPosition - 4, contentWidth, 8, 'F');
         }
 
-        doc.text(formatDateTime(checkin.timestamp), margin + 2, yPosition);
+        doc.text(formatToLocalDateTime(checkin.timestamp), margin + 2, yPosition);
         doc.text(truncateText(checkin.instructor_id, 15), margin + 40, yPosition);
         doc.text(truncateText(checkin.student_name, 15), margin + 80, yPosition);
         doc.text(truncateText(checkin.student_id, 15), margin + 120, yPosition);
@@ -277,89 +279,4 @@ function generatePDF() {
 function truncateText(text, maxLength) {
     if (text.length <= maxLength) return text;
     return text.substring(0, maxLength - 3) + '...';
-}
-
-// Alternative PDF generation using html2canvas for better styling
-async function generateStyledPDF() {
-    if (allCheckins.length === 0) {
-        alert('No data to generate PDF');
-        return;
-    }
-
-    // Create a temporary div with the report content
-    const reportDiv = document.createElement('div');
-    reportDiv.style.padding = '20px';
-    reportDiv.style.backgroundColor = 'white';
-    reportDiv.style.fontFamily = 'Arial, sans-serif';
-    
-    const dateFilter = document.getElementById('date-filter').value;
-    const instructorFilter = document.getElementById('instructor-filter').value;
-    const carFilter = document.getElementById('car-filter').value;
-
-    reportDiv.innerHTML = `
-        <h1 style="color: #1f2937; font-size: 24px; font-weight: bold; margin-bottom: 10px;">
-            Driving Lesson Check-In Report
-        </h1>
-        <p style="color: #6b7280; font-size: 12px; margin-bottom: 20px;">
-            Generated: ${new Date().toLocaleString()}
-            ${dateFilter ? ` | Date: ${dateFilter}` : ''}
-            ${instructorFilter ? ` | Instructor: ${instructorFilter}` : ''}
-            ${carFilter ? ` | Car: ${carFilter}` : ''}
-        </p>
-        <div style="background: #3b82f6; color: white; padding: 15px; border-radius: 8px; text-align: center; margin-bottom: 20px;">
-            <div style="font-size: 18px; font-weight: bold;">Total Check-Ins: ${allCheckins.length}</div>
-        </div>
-        <table style="width: 100%; border-collapse: collapse; font-size: 10px;">
-            <thead>
-                <tr style="background: #f3f4f6;">
-                    <th style="border: 1px solid #d1d5db; padding: 8px; text-align: left;">Time</th>
-                    <th style="border: 1px solid #d1d5db; padding: 8px; text-align: left;">Instructor</th>
-                    <th style="border: 1px solid #d1d5db; padding: 8px; text-align: left;">Student</th>
-                    <th style="border: 1px solid #d1d5db; padding: 8px; text-align: left;">Student ID</th>
-                    <th style="border: 1px solid #d1d5db; padding: 8px; text-align: left;">Car Plate</th>
-                </tr>
-            </thead>
-            <tbody>
-                ${allCheckins.map((checkin, index) => `
-                    <tr style="${index % 2 === 0 ? 'background: #fafafa;' : ''}">
-                        <td style="border: 1px solid #d1d5db; padding: 6px;">${formatDateTime(checkin.timestamp)}</td>
-                        <td style="border: 1px solid #d1d5db; padding: 6px;">${escapeHtml(checkin.instructor_id)}</td>
-                        <td style="border: 1px solid #d1d5db; padding: 6px;">${escapeHtml(checkin.student_name)}</td>
-                        <td style="border: 1px solid #d1d5db; padding: 6px;">${escapeHtml(checkin.student_id)}</td>
-                        <td style="border: 1px solid #d1d5db; padding: 6px;">${escapeHtml(checkin.car_plate)}</td>
-                    </tr>
-                `).join('')}
-            </tbody>
-        </table>
-    `;
-
-    document.body.appendChild(reportDiv);
-
-    try {
-        const canvas = await html2canvas(reportDiv, {
-            scale: 2,
-            useCORS: true,
-            logging: false
-        });
-
-        const imgData = canvas.toDataURL('image/png');
-        const doc = new jsPDF('p', 'mm', 'a4');
-        const pageWidth = doc.internal.pageSize.getWidth();
-        const pageHeight = doc.internal.pageSize.getHeight();
-        
-        // Calculate dimensions to fit the image on the page
-        const imgWidth = canvas.width;
-        const imgHeight = canvas.height;
-        const ratio = imgWidth / imgHeight;
-        const pdfWidth = pageWidth - 20; // margin
-        const pdfHeight = pdfWidth / ratio;
-        
-        doc.addImage(imgData, 'PNG', 10, 10, pdfWidth, pdfHeight);
-        doc.save(`driving-lessons-report-${new Date().toISOString().split('T')[0]}.pdf`);
-    } catch (error) {
-        console.error('Error generating PDF:', error);
-        alert('Error generating PDF. Please try again.');
-    } finally {
-        document.body.removeChild(reportDiv);
-    }
 }
