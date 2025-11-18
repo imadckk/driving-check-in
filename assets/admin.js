@@ -3,6 +3,7 @@ const SUPABASE_URL = 'https://dorkygsgobhcagtqydjb.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRvcmt5Z3Nnb2JoY2FndHF5ZGpiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjEwOTc0MzcsImV4cCI6MjA3NjY3MzQzN30.bNCo8Ijj2DIr-c34P7U-lb6QK69D8OzO2sCd6SOwaW0';
 
 let allCheckins = [];
+let currentPDF = null;
 const { jsPDF } = window.jspdf;
 
 document.addEventListener('DOMContentLoaded', function() {
@@ -177,106 +178,291 @@ function formatToLocalDate(isoString) {
     return date.toLocaleDateString();
 }
 
-function generatePDF() {
+// Generate PDF and show preview
+async function generatePDFPreview() {
     if (allCheckins.length === 0) {
         alert('No data to generate PDF');
         return;
     }
 
-    const doc = new jsPDF();
-    const pageWidth = doc.internal.pageSize.getWidth();
-    const margin = 20;
-    const contentWidth = pageWidth - (margin * 2);
+    // Show loading state in modal
+    document.getElementById('pdf-preview-modal').classList.remove('hidden');
+    document.getElementById('pdf-preview-content').innerHTML = `
+        <div class="flex items-center justify-center h-full">
+            <div class="text-center text-gray-500">
+                <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                <p>Generating PDF preview...</p>
+            </div>
+        </div>
+    `;
 
-    // Title
-    doc.setFontSize(20);
-    doc.setFont('helvetica', 'bold');
-    doc.text('Driving Lesson Check-In Report', margin, 25);
-
-    // Date range and filters
-    doc.setFontSize(10);
-    doc.setFont('helvetica', 'normal');
-    const dateFilter = document.getElementById('date-filter').value;
-    const instructorFilter = document.getElementById('instructor-filter').value;
-    const carFilter = document.getElementById('car-filter').value;
-    
-    let filterText = `Generated: ${new Date().toLocaleString()}`;
-    if (dateFilter) filterText += ` | Date: ${dateFilter}`;
-    if (instructorFilter) filterText += ` | Instructor: ${instructorFilter}`;
-    if (carFilter) filterText += ` | Car: ${carFilter}`;
-    
-    doc.text(filterText, margin, 35);
-
-    // Summary
-    doc.setFontSize(12);
-    doc.setFont('helvetica', 'bold');
-    doc.text(`Total Check-Ins: ${allCheckins.length}`, margin, 50);
-
-    // Table headers
-    let yPosition = 65;
-    doc.setFillColor(240, 240, 240);
-    doc.rect(margin, yPosition, contentWidth, 10, 'F');
-    
-    doc.setFontSize(10);
-    doc.setFont('helvetica', 'bold');
-    doc.text('Time', margin + 2, yPosition + 7);
-    doc.text('Instructor', margin + 40, yPosition + 7);
-    doc.text('Student', margin + 80, yPosition + 7);
-    doc.text('Student ID', margin + 120, yPosition + 7);
-    doc.text('Car Plate', margin + 160, yPosition + 7);
-
-    yPosition += 12;
-
-    // Table rows
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(8);
-
-    allCheckins.forEach((checkin, index) => {
-        // Check if we need a new page
-        if (yPosition > 270) {
-            doc.addPage();
-            yPosition = 20;
-            
-            // Add header on new page
-            doc.setFontSize(10);
-            doc.setFont('helvetica', 'bold');
-            doc.text('Time', margin + 2, yPosition);
-            doc.text('Instructor', margin + 40, yPosition);
-            doc.text('Student', margin + 80, yPosition);
-            doc.text('Student ID', margin + 120, yPosition);
-            doc.text('Car Plate', margin + 160, yPosition);
-            yPosition += 10;
-        }
-
-        // Alternate row background
-        if (index % 2 === 0) {
-            doc.setFillColor(250, 250, 250);
-            doc.rect(margin, yPosition - 4, contentWidth, 8, 'F');
-        }
-
-        doc.text(formatToLocalDateTime(checkin.timestamp), margin + 2, yPosition);
-        doc.text(truncateText(checkin.instructor_id, 15), margin + 40, yPosition);
-        doc.text(truncateText(checkin.student_name, 15), margin + 80, yPosition);
-        doc.text(truncateText(checkin.student_id, 15), margin + 120, yPosition);
-        doc.text(truncateText(checkin.car_plate, 10), margin + 160, yPosition);
-
-        yPosition += 8;
-    });
-
-    // Add page numbers
-    const pageCount = doc.internal.getNumberOfPages();
-    for (let i = 1; i <= pageCount; i++) {
-        doc.setPage(i);
-        doc.setFontSize(8);
-        doc.text(`Page ${i} of ${pageCount}`, pageWidth - margin - 20, 290);
+    try {
+        // Generate PDF
+        currentPDF = await createPDF();
+        
+        // Convert PDF to blob for preview
+        const pdfBlob = currentPDF.output('blob');
+        const pdfUrl = URL.createObjectURL(pdfBlob);
+        
+        // Display PDF in iframe
+        document.getElementById('pdf-preview-content').innerHTML = `
+            <iframe src="${pdfUrl}" class="w-full h-full border-0" id="pdf-iframe"></iframe>
+        `;
+        
+    } catch (error) {
+        console.error('Error generating PDF preview:', error);
+        document.getElementById('pdf-preview-content').innerHTML = `
+            <div class="flex items-center justify-center h-full">
+                <div class="text-center text-red-600">
+                    <svg class="w-12 h-12 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                    <p>Error generating PDF preview</p>
+                    <p class="text-sm mt-2">${error.message}</p>
+                </div>
+            </div>
+        `;
     }
+}
 
-    // Save the PDF
+// Create PDF document
+function createPDF() {
+    return new Promise((resolve) => {
+        const doc = new jsPDF();
+        const pageWidth = doc.internal.pageSize.getWidth();
+        const margin = 20;
+        const contentWidth = pageWidth - (margin * 2);
+
+        // Title
+        doc.setFontSize(20);
+        doc.setFont('helvetica', 'bold');
+        doc.text('Driving Lesson Check-In Report', margin, 25);
+
+        // Date range and filters
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'normal');
+        const dateFilter = document.getElementById('date-filter').value;
+        const instructorFilter = document.getElementById('instructor-filter').value;
+        const carFilter = document.getElementById('car-filter').value;
+        
+        let filterText = `Generated: ${new Date().toLocaleString()}`;
+        if (dateFilter) filterText += ` | Date: ${dateFilter}`;
+        if (instructorFilter) filterText += ` | Instructor: ${instructorFilter}`;
+        if (carFilter) filterText += ` | Car: ${carFilter}`;
+        
+        doc.text(filterText, margin, 35);
+
+        // Summary
+        doc.setFontSize(12);
+        doc.setFont('helvetica', 'bold');
+        doc.text(`Total Check-Ins: ${allCheckins.length}`, margin, 50);
+
+        // Table headers
+        let yPosition = 65;
+        doc.setFillColor(240, 240, 240);
+        doc.rect(margin, yPosition, contentWidth, 10, 'F');
+        
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'bold');
+        doc.text('Time', margin + 2, yPosition + 7);
+        doc.text('Instructor', margin + 40, yPosition + 7);
+        doc.text('Student', margin + 80, yPosition + 7);
+        doc.text('Student ID', margin + 120, yPosition + 7);
+        doc.text('Car Plate', margin + 160, yPosition + 7);
+
+        yPosition += 12;
+
+        // Table rows
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(8);
+
+        allCheckins.forEach((checkin, index) => {
+            // Check if we need a new page
+            if (yPosition > 270) {
+                doc.addPage();
+                yPosition = 20;
+                
+                // Add header on new page
+                doc.setFontSize(10);
+                doc.setFont('helvetica', 'bold');
+                doc.text('Time', margin + 2, yPosition);
+                doc.text('Instructor', margin + 40, yPosition);
+                doc.text('Student', margin + 80, yPosition);
+                doc.text('Student ID', margin + 120, yPosition);
+                doc.text('Car Plate', margin + 160, yPosition);
+                yPosition += 10;
+            }
+
+            // Alternate row background
+            if (index % 2 === 0) {
+                doc.setFillColor(250, 250, 250);
+                doc.rect(margin, yPosition - 4, contentWidth, 8, 'F');
+            }
+
+            doc.text(formatToLocalDateTime(checkin.timestamp), margin + 2, yPosition);
+            doc.text(truncateText(checkin.instructor_id, 15), margin + 40, yPosition);
+            doc.text(truncateText(checkin.student_name, 15), margin + 80, yPosition);
+            doc.text(truncateText(checkin.student_id, 15), margin + 120, yPosition);
+            doc.text(truncateText(checkin.car_plate, 10), margin + 160, yPosition);
+
+            yPosition += 8;
+        });
+
+        // Add page numbers
+        const pageCount = doc.internal.getNumberOfPages();
+        for (let i = 1; i <= pageCount; i++) {
+            doc.setPage(i);
+            doc.setFontSize(8);
+            doc.text(`Page ${i} of ${pageCount}`, pageWidth - margin - 20, 290);
+        }
+
+        resolve(doc);
+    });
+}
+
+// Download the current PDF
+function downloadPDF() {
+    if (!currentPDF) {
+        alert('No PDF generated yet');
+        return;
+    }
+    
     const fileName = `driving-lessons-report-${new Date().toISOString().split('T')[0]}.pdf`;
-    doc.save(fileName);
+    currentPDF.save(fileName);
+    closePDFPreview();
+}
+
+// Close PDF preview modal
+function closePDFPreview() {
+    document.getElementById('pdf-preview-modal').classList.add('hidden');
+    
+    // Clean up blob URLs to prevent memory leaks
+    const iframe = document.getElementById('pdf-iframe');
+    if (iframe) {
+        const src = iframe.src;
+        if (src.startsWith('blob:')) {
+            URL.revokeObjectURL(src);
+        }
+    }
+    
+    currentPDF = null;
 }
 
 function truncateText(text, maxLength) {
     if (text.length <= maxLength) return text;
     return text.substring(0, maxLength - 3) + '...';
+}
+
+// Alternative: Generate PDF using HTML content for better styling (optional)
+async function generateStyledPDFPreview() {
+    if (allCheckins.length === 0) {
+        alert('No data to generate PDF');
+        return;
+    }
+
+    document.getElementById('pdf-preview-modal').classList.remove('hidden');
+    document.getElementById('pdf-preview-content').innerHTML = `
+        <div class="flex items-center justify-center h-full">
+            <div class="text-center text-gray-500">
+                <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                <p>Generating styled PDF preview...</p>
+            </div>
+        </div>
+    `;
+
+    try {
+        // Create a temporary div with the report content
+        const reportDiv = document.createElement('div');
+        reportDiv.style.padding = '20px';
+        reportDiv.style.backgroundColor = 'white';
+        reportDiv.style.fontFamily = 'Arial, sans-serif';
+        reportDiv.style.width = '210mm'; // A4 width
+        reportDiv.style.minHeight = '297mm'; // A4 height
+        
+        const dateFilter = document.getElementById('date-filter').value;
+        const instructorFilter = document.getElementById('instructor-filter').value;
+        const carFilter = document.getElementById('car-filter').value;
+
+        reportDiv.innerHTML = `
+            <div style="margin-bottom: 20px;">
+                <h1 style="color: #1f2937; font-size: 24px; font-weight: bold; margin-bottom: 10px;">
+                    Driving Lesson Check-In Report
+                </h1>
+                <p style="color: #6b7280; font-size: 12px; margin-bottom: 20px;">
+                    Generated: ${new Date().toLocaleString()}
+                    ${dateFilter ? ` | Date: ${dateFilter}` : ''}
+                    ${instructorFilter ? ` | Instructor: ${instructorFilter}` : ''}
+                    ${carFilter ? ` | Car: ${carFilter}` : ''}
+                </p>
+                <div style="background: #3b82f6; color: white; padding: 15px; border-radius: 8px; text-align: center; margin-bottom: 20px;">
+                    <div style="font-size: 18px; font-weight: bold;">Total Check-Ins: ${allCheckins.length}</div>
+                </div>
+            </div>
+            <table style="width: 100%; border-collapse: collapse; font-size: 10px;">
+                <thead>
+                    <tr style="background: #f3f4f6;">
+                        <th style="border: 1px solid #d1d5db; padding: 8px; text-align: left;">Time</th>
+                        <th style="border: 1px solid #d1d5db; padding: 8px; text-align: left;">Instructor</th>
+                        <th style="border: 1px solid #d1d5db; padding: 8px; text-align: left;">Student</th>
+                        <th style="border: 1px solid #d1d5db; padding: 8px; text-align: left;">Student ID</th>
+                        <th style="border: 1px solid #d1d5db; padding: 8px; text-align: left;">Car Plate</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${allCheckins.map((checkin, index) => `
+                        <tr style="${index % 2 === 0 ? 'background: #fafafa;' : ''}">
+                            <td style="border: 1px solid #d1d5db; padding: 6px;">${formatToLocalDateTime(checkin.timestamp)}</td>
+                            <td style="border: 1px solid #d1d5db; padding: 6px;">${escapeHtml(checkin.instructor_id)}</td>
+                            <td style="border: 1px solid #d1d5db; padding: 6px;">${escapeHtml(checkin.student_name)}</td>
+                            <td style="border: 1px solid #d1d5db; padding: 6px;">${escapeHtml(checkin.student_id)}</td>
+                            <td style="border: 1px solid #d1d5db; padding: 6px;">${escapeHtml(checkin.car_plate)}</td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+            </table>
+        `;
+
+        document.body.appendChild(reportDiv);
+
+        const canvas = await html2canvas(reportDiv, {
+            scale: 2,
+            useCORS: true,
+            logging: false
+        });
+
+        document.body.removeChild(reportDiv);
+
+        const imgData = canvas.toDataURL('image/png');
+        const doc = new jsPDF('p', 'mm', 'a4');
+        const pageWidth = doc.internal.pageSize.getWidth();
+        const pageHeight = doc.internal.pageSize.getHeight();
+        
+        // Calculate dimensions to fit the image on the page
+        const imgWidth = canvas.width;
+        const imgHeight = canvas.height;
+        const ratio = imgWidth / imgHeight;
+        const pdfWidth = pageWidth - 20; // margin
+        const pdfHeight = pdfWidth / ratio;
+        
+        doc.addImage(imgData, 'PNG', 10, 10, pdfWidth, pdfHeight);
+        
+        currentPDF = doc;
+        const pdfBlob = doc.output('blob');
+        const pdfUrl = URL.createObjectURL(pdfBlob);
+        
+        document.getElementById('pdf-preview-content').innerHTML = `
+            <iframe src="${pdfUrl}" class="w-full h-full border-0" id="pdf-iframe"></iframe>
+        `;
+        
+    } catch (error) {
+        console.error('Error generating styled PDF:', error);
+        document.getElementById('pdf-preview-content').innerHTML = `
+            <div class="flex items-center justify-center h-full">
+                <div class="text-center text-red-600">
+                    <p>Error generating PDF preview</p>
+                    <p class="text-sm mt-2">${error.message}</p>
+                </div>
+            </div>
+        `;
+    }
 }
