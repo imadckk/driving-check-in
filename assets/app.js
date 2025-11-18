@@ -30,7 +30,6 @@ document.getElementById('checkin-form').addEventListener('submit', async functio
         student_name: document.getElementById('student-name').value,
         student_id: document.getElementById('student-id').value,
         timestamp: now.toISOString(), // Store as ISO string for consistency
-        local_timestamp: formatLocalDateTime(now) // Store human-readable local time
     };
 
     // Validate car plate
