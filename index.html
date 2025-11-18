@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Driving Instructor Check-In</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <link rel="stylesheet" href="assets/app.css">
 </head>
 <body class="bg-gray-50 min-h-screen">
@@ -17,15 +18,21 @@
         <!-- Check-in Form -->
         <div class="bg-white rounded-lg shadow-md p-6">
             <form id="checkin-form">
-                <!-- Car Plate (pre-filled from QR) -->
-                <div class="mb-4">
-                    <label class="block text-gray-700 text-sm font-medium mb-2">Car Plate</label>
-                    <input type="text" id="car-plate" 
-                           class="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-600"
-                           readonly>
+                <!-- Car Plate Display -->
+                <div class="mb-6">
+                    <label class="block text-gray-700 text-sm font-medium mb-3 text-center">Car Plate</label>
+                    <div class="flex justify-center">
+                        <div id="car-plate-display" class="relative">
+                            <!-- 3D Car Plate Container -->
+                            <div id="plate-container" class="relative w-64 h-16 mx-auto"></div>
+                            <!-- Hidden input for form data -->
+                            <input type="hidden" id="car-plate" name="car-plate">
+                        </div>
+                    </div>
+                    
                 </div>
 
-                <!-- Instructor ID -->
+                <!-- Rest of the form remains the same -->
                 <div class="mb-4">
                     <label class="block text-gray-700 text-sm font-medium mb-2">Agent Code *</label>
                     <input type="text" id="instructor-id" 
@@ -34,7 +41,6 @@
                            required>
                 </div>
 
-                <!-- Student Name -->
                 <div class="mb-4">
                     <label class="block text-gray-700 text-sm font-medium mb-2">Student Name *</label>
                     <input type="text" id="student-name" 
@@ -43,7 +49,6 @@
                            required>
                 </div>
 
-                <!-- Student ID -->
                 <div class="mb-6">
                     <label class="block text-gray-700 text-sm font-medium mb-2">
                         Student IC * <i>Cth: 080808120909</i>
@@ -54,7 +59,6 @@
                            required>
                 </div>
 
-                <!-- Submit Button -->
                 <button type="submit" 
                         class="w-full bg-blue-600 text-white py-3 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium transition duration-200">
                     Check In
@@ -62,23 +66,25 @@
             </form>
         </div>
 
-    <!-- Success Modal -->
-    <div id="success-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden">
-        <div class="bg-white rounded-lg p-6 mx-4 max-w-sm w-full">
-            <div class="text-center">
-                <div class="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-                    </svg>
+        <!-- Success Modal (unchanged) -->
+        <div id="success-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden">
+            <div class="bg-white rounded-lg p-6 mx-4 max-w-sm w-full">
+                <div class="text-center">
+                    <div class="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                        </svg>
+                    </div>
+                    <h3 class="text-lg font-medium text-gray-900 mb-2">Check-In Successful!</h3>
+                    <p class="text-gray-600 mb-4">The lesson has been recorded.</p>
+                    <button onclick="closeSuccessModal()" 
+                            class="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700">
+                        New Check-In
+                    </button>
                 </div>
-                <h3 class="text-lg font-medium text-gray-900 mb-2">Check-In Successful!</h3>
-                <p class="text-gray-600 mb-4">The lesson has been recorded.</p>
-                <button onclick="closeSuccessModal()" 
-                        class="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700">
-                    New Check-In
-                </button>
             </div>
         </div>
+
     </div>
 
     <script src="assets/app.js"></script>
