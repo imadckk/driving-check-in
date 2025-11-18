@@ -1,1 +1,77 @@
+/* Car Plate Styles with 3D Effect */
+.car-plate {
+    width: 240px;
+    height: 60px;
+    background: #000000;
+    border: 3px solid #666666;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    margin: 0 auto;
+}
 
+/* 3D Extrude Effect */
+.css-3d {
+    box-shadow: 
+        0 4px 8px rgba(0, 0, 0, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.8);
+    transform: perspective(500px) rotateX(5deg);
+    transition: all 0.3s ease;
+}
+
+.css-3d::before {
+    content: '';
+    position: absolute;
+    top: -2px;
+    left: -2px;
+    right: -2px;
+    bottom: -2px;
+    background: linear-gradient(135deg, #666666 0%, #333333 50%, #666666 100%);
+    border-radius: 10px;
+    z-index: -1;
+    opacity: 0.8;
+}
+
+.css-3d:hover {
+    transform: perspective(500px) rotateX(5deg) translateY(-2px);
+    box-shadow: 
+        0 6px 12px rgba(0, 0, 0, 0.4),
+        inset 0 1px 0 rgba(255, 255, 255, 0.3),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.9);
+}
+
+.plate-text {
+    color: #ffffff;
+    font-family: 'Courier New', monospace;
+    font-size: 24px;
+    font-weight: bold;
+    letter-spacing: 2px;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+    text-transform: uppercase;
+}
+
+/* Empty plate state */
+.car-plate.empty .plate-text {
+    color: #888888;
+    font-style: italic;
+    font-weight: normal;
+}
+
+/* Reflective shine effect */
+.car-plate::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 30%;
+    background: linear-gradient(135deg, 
+        rgba(255, 255, 255, 0.1) 0%, 
+        rgba(255, 255, 255, 0.05) 50%, 
+        rgba(255, 255, 255, 0) 100%);
+    border-radius: 5px 5px 0 0;
+    pointer-events: none;
+}
