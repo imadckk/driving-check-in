@@ -33,13 +33,14 @@
                     
                 </div>
 
-                <!-- Rest of the form remains the same -->
+            
                 <div class="mb-4">
                     <label class="block text-gray-700 text-sm font-medium mb-2">Agent Code *</label>
                     <input type="text" id="instructor-id" 
                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                            placeholder="Enter your instructor ID"
-                           required>
+                           required
+                           oninput="this.value = this.value.toUpperCase()">
                 </div>
 
                 <div class="mb-4">
@@ -47,7 +48,8 @@
                     <input type="text" id="student-name" 
                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                            placeholder="Enter student name"
-                           required>
+                           required
+                           oninput="this.value = this.value.toUpperCase()">
                 </div>
 
                 <div class="mb-6">
@@ -57,7 +59,8 @@
                     <input type="text" id="student-id" 
                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                            placeholder="Enter student ID"
-                           required>
+                           required
+                           oninput="this.value = this.value.toUpperCase()">
                 </div>
 
                 <button type="submit" 
