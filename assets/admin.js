@@ -295,7 +295,7 @@ function createPDF() {
         doc.setFillColor(colors.headerBg[0], colors.headerBg[1], colors.headerBg[2]);
         doc.rect(margin, yPosition, contentWidth, rowHeight, 'F');
         
-        doc.setFontSize(12);
+        doc.setFontSize(10);
         doc.setFont('helvetica', 'bold');
         doc.setTextColor(colors.headerText[0], colors.headerText[1], colors.headerText[2]);
         
@@ -314,7 +314,7 @@ function createPDF() {
 
         // Table rows
         doc.setFont('helvetica', 'normal');
-        doc.setFontSize(8);
+        doc.setFontSize(10);
 
         allCheckins.forEach((checkin, index) => {
             // Check if we need a new page
