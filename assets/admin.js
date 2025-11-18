@@ -295,7 +295,7 @@ function createPDF() {
         doc.setFillColor(colors.headerBg[0], colors.headerBg[1], colors.headerBg[2]);
         doc.rect(margin, yPosition, contentWidth, rowHeight, 'F');
         
-        doc.setFontSize(9);
+        doc.setFontSize(12);
         doc.setFont('helvetica', 'bold');
         doc.setTextColor(colors.headerText[0], colors.headerText[1], colors.headerText[2]);
         
