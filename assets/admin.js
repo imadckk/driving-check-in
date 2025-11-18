@@ -166,10 +166,20 @@ function escapeHtml(unsafe) {
         .replace(/'/g, "&#039;");
 }
 
-// Convert ISO timestamp to device's local date and time
+// Convert ISO timestamp to DD/MM/YYYY HH:MM:SS format
 function formatToLocalDateTime(isoString) {
     const date = new Date(isoString);
-    return date.toLocaleString();
+    
+    // Get individual date components
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0'); // Months are 0-based
+    const year = date.getFullYear();
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    const seconds = String(date.getSeconds()).padStart(2, '0');
+    
+    // Format as DD/MM/YYYY HH:MM:SS
+    return `${day}/${month}/${year} ${hours}:${minutes}:${seconds}`;
 }
 
 // Format date only (for filtering)
@@ -233,14 +243,27 @@ function createPDF() {
         const margin = 20;
         const contentWidth = pageWidth - (margin * 2);
 
+        // === COLOR CONFIGURATION ===
+        const colors = {
+            headerBg: [59, 130, 246],     // Blue header
+            headerText: [255, 255, 255],  // White header text
+            evenRowBg: [249, 250, 251],   // Light gray for even rows
+            oddRowBg: [255, 255, 255],    // White for odd rows
+            text: [0, 0, 0],              // Black text
+            title: [31, 41, 55],          // Gray-800 for title
+            summary: [59, 130, 246]       // Blue for summary
+        };
+
         // Title
-        doc.setFontSize(20);
+        doc.setFontSize(18);
         doc.setFont('helvetica', 'bold');
+        doc.setTextColor(colors.title[0], colors.title[1], colors.title[2]);
         doc.text('Driving Lesson Check-In Report', margin, 25);
 
         // Date range and filters
         doc.setFontSize(10);
         doc.setFont('helvetica', 'normal');
+        doc.setTextColor(100, 100, 100); // Gray color
         const dateFilter = document.getElementById('date-filter').value;
         const instructorFilter = document.getElementById('instructor-filter').value;
         const carFilter = document.getElementById('car-filter').value;
@@ -252,25 +275,42 @@ function createPDF() {
         
         doc.text(filterText, margin, 35);
 
-        // Summary
-        doc.setFontSize(12);
+        // Summary box
+        doc.setFillColor(colors.summary[0], colors.summary[1], colors.summary[2]);
+        doc.rect(margin, 42, 60, 12, 'F');
+        doc.setFontSize(11);
         doc.setFont('helvetica', 'bold');
-        doc.text(`Total Check-Ins: ${allCheckins.length}`, margin, 50);
+        doc.setTextColor(255, 255, 255);
+        doc.text(`Total Check-Ins: ${allCheckins.length}`, margin + 5, 50);
 
-        // Table headers
+        // Reset text color for table
+        doc.setTextColor(colors.text[0], colors.text[1], colors.text[2]);
+
+        // Table setup
+        const columnWidths = [45, 30, 35, 30, 30]; // Widths for each column
+        const rowHeight = 10;
         let yPosition = 65;
-        doc.setFillColor(240, 240, 240);
-        doc.rect(margin, yPosition, contentWidth, 10, 'F');
-        
-        doc.setFontSize(10);
-        doc.setFont('helvetica', 'bold');
-        doc.text('Time', margin + 2, yPosition + 7);
-        doc.text('Instructor', margin + 40, yPosition + 7);
-        doc.text('Student', margin + 80, yPosition + 7);
-        doc.text('Student ID', margin + 120, yPosition + 7);
-        doc.text('Car Plate', margin + 160, yPosition + 7);
 
-        yPosition += 12;
+        // Draw table headers
+        doc.setFillColor(colors.headerBg[0], colors.headerBg[1], colors.headerBg[2]);
+        doc.rect(margin, yPosition, contentWidth, rowHeight, 'F');
+        
+        doc.setFontSize(9);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(colors.headerText[0], colors.headerText[1], colors.headerText[2]);
+        
+        let xPosition = margin + 2;
+        doc.text('Time', xPosition, yPosition + 7);
+        xPosition += columnWidths[0];
+        doc.text('Instructor', xPosition, yPosition + 7);
+        xPosition += columnWidths[1];
+        doc.text('Student Name', xPosition, yPosition + 7);
+        xPosition += columnWidths[2];
+        doc.text('Student ID', xPosition, yPosition + 7);
+        xPosition += columnWidths[3];
+        doc.text('Car Plate', xPosition, yPosition + 7);
+
+        yPosition += rowHeight;
 
         // Table rows
         doc.setFont('helvetica', 'normal');
@@ -282,37 +322,70 @@ function createPDF() {
                 doc.addPage();
                 yPosition = 20;
                 
-                // Add header on new page
-                doc.setFontSize(10);
+                // Redraw headers on new page
+                doc.setFillColor(colors.headerBg[0], colors.headerBg[1], colors.headerBg[2]);
+                doc.rect(margin, yPosition, contentWidth, rowHeight, 'F');
+                
+                doc.setFontSize(9);
                 doc.setFont('helvetica', 'bold');
-                doc.text('Time', margin + 2, yPosition);
-                doc.text('Instructor', margin + 40, yPosition);
-                doc.text('Student', margin + 80, yPosition);
-                doc.text('Student ID', margin + 120, yPosition);
-                doc.text('Car Plate', margin + 160, yPosition);
-                yPosition += 10;
+                doc.setTextColor(colors.headerText[0], colors.headerText[1], colors.headerText[2]);
+                
+                let xPos = margin + 2;
+                doc.text('Time', xPos, yPosition + 7);
+                xPos += columnWidths[0];
+                doc.text('Instructor', xPos, yPosition + 7);
+                xPos += columnWidths[1];
+                doc.text('Student Name', xPos, yPosition + 7);
+                xPos += columnWidths[2];
+                doc.text('Student ID', xPos, yPosition + 7);
+                xPos += columnWidths[3];
+                doc.text('Car Plate', xPos, yPosition + 7);
+
+                yPosition += rowHeight;
             }
 
             // Alternate row background
-            if (index % 2 === 0) {
-                doc.setFillColor(250, 250, 250);
-                doc.rect(margin, yPosition - 4, contentWidth, 8, 'F');
+            const isEvenRow = index % 2 === 0;
+            if (isEvenRow) {
+                doc.setFillColor(colors.evenRowBg[0], colors.evenRowBg[1], colors.evenRowBg[2]);
+            } else {
+                doc.setFillColor(colors.oddRowBg[0], colors.oddRowBg[1], colors.oddRowBg[2]);
             }
+            doc.rect(margin, yPosition, contentWidth, rowHeight, 'F');
 
-            doc.text(formatToLocalDateTime(checkin.timestamp), margin + 2, yPosition);
-            doc.text(truncateText(checkin.instructor_id, 15), margin + 40, yPosition);
-            doc.text(truncateText(checkin.student_name, 15), margin + 80, yPosition);
-            doc.text(truncateText(checkin.student_id, 15), margin + 120, yPosition);
-            doc.text(truncateText(checkin.car_plate, 10), margin + 160, yPosition);
+            // Row text
+            doc.setTextColor(colors.text[0], colors.text[1], colors.text[2]);
+            
+            let cellX = margin + 2;
+            
+            // Time column
+            doc.text(formatToLocalDateTime(checkin.timestamp), cellX, yPosition + 7);
+            cellX += columnWidths[0];
+            
+            // Instructor column
+            doc.text(truncateText(checkin.instructor_id, 12), cellX, yPosition + 7);
+            cellX += columnWidths[1];
+            
+            // Student Name column
+            doc.text(truncateText(checkin.student_name, 12), cellX, yPosition + 7);
+            cellX += columnWidths[2];
+            
+            // Student ID column
+            doc.text(truncateText(checkin.student_id, 12), cellX, yPosition + 7);
+            cellX += columnWidths[3];
+            
+            // Car Plate column
+            doc.text(truncateText(checkin.car_plate, 8), cellX, yPosition + 7);
 
-            yPosition += 8;
+            yPosition += rowHeight;
         });
 
         // Add page numbers
         const pageCount = doc.internal.getNumberOfPages();
+        doc.setFontSize(8);
+        doc.setTextColor(100, 100, 100);
         for (let i = 1; i <= pageCount; i++) {
             doc.setPage(i);
-            doc.setFontSize(8);
             doc.text(`Page ${i} of ${pageCount}`, pageWidth - margin - 20, 290);
         }
 
@@ -348,9 +421,12 @@ function closePDFPreview() {
     currentPDF = null;
 }
 
+// Helper function to truncate text for PDF display
 function truncateText(text, maxLength) {
-    if (text.length <= maxLength) return text;
-    return text.substring(0, maxLength - 3) + '...';
+    if (!text) return '';
+    const str = text.toString();
+    if (str.length <= maxLength) return str;
+    return str.substring(0, maxLength - 1) + '…';
 }
 
 // Alternative: Generate PDF using HTML content for better styling (optional)
