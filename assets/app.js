@@ -22,12 +22,15 @@ document.addEventListener('DOMContentLoaded', function() {
 document.getElementById('checkin-form').addEventListener('submit', async function(e) {
     e.preventDefault();
     
+    // Use device's local date and time
+    const now = new Date();
     const formData = {
         car_plate: document.getElementById('car-plate').value,
         instructor_id: document.getElementById('instructor-id').value,
         student_name: document.getElementById('student-name').value,
         student_id: document.getElementById('student-id').value,
-        timestamp: new Date().toISOString()
+        timestamp: now.toISOString(), // Store as ISO string for consistency
+        local_timestamp: formatLocalDateTime(now) // Store human-readable local time
     };
 
     // Validate car plate
@@ -98,6 +101,11 @@ function updatePendingCount() {
     if (pending > 0) {
         console.log(`${pending} check-ins pending sync`);
     }
+}
+
+// Format local date and time for display
+function formatLocalDateTime(date) {
+    return date.toLocaleString();
 }
 
 // Sync pending check-ins when coming online
