@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Driving Instructor Check-In</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <link rel="stylesheet" href="assets/app.css">
 </head>
 <body class="bg-gray-50 min-h-screen">
@@ -23,13 +22,17 @@
                     <label class="block text-gray-700 text-sm font-medium mb-3 text-center">Car Plate</label>
                     <div class="flex justify-center">
                         <div id="car-plate-display" class="relative">
-                            <!-- 3D Car Plate Container -->
-                            <div id="plate-container" class="relative w-64 h-16 mx-auto"></div>
+                            <!-- CSS-based Car Plate with 3D effect -->
+                            <div id="css-plate" class="car-plate css-3d">
+                                <span id="plate-text" class="plate-text">- - - - -</span>
+                            </div>
                             <!-- Hidden input for form data -->
                             <input type="hidden" id="car-plate" name="car-plate">
                         </div>
                     </div>
-                    
+                    <p class="text-xs text-gray-500 text-center mt-2">
+                        Scan QR code or <button type="button" onclick="showManualEntry()" class="text-blue-600 hover:underline">enter manually</button>
+                    </p>
                 </div>
 
                 <!-- Rest of the form remains the same -->
@@ -66,7 +69,7 @@
             </form>
         </div>
 
-        <!-- Success Modal (unchanged) -->
+        <!-- Success Modal -->
         <div id="success-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden">
             <div class="bg-white rounded-lg p-6 mx-4 max-w-sm w-full">
                 <div class="text-center">
