@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Driving Instructor Check-In</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <div class="container mx-auto px-4 py-8 max-w-md">
+        <!-- Header -->
+        <div class="text-center mb-8">
+            <h1 class="text-2xl font-bold text-gray-800">Driving Lesson Check-In</h1>
+            <p class="text-gray-600 mt-2">Scan car QR code to start</p>
+        </div>
+
+        <!-- Check-in Form -->
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <form id="checkin-form">
+                <!-- Car Plate (pre-filled from QR) -->
+                <div class="mb-4">
+                    <label class="block text-gray-700 text-sm font-medium mb-2">Car Plate</label>
+                    <input type="text" id="car-plate" 
+                           class="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-600"
+                           readonly>
+                </div>
+
+                <!-- Instructor ID -->
+                <div class="mb-4">
+                    <label class="block text-gray-700 text-sm font-medium mb-2">Instructor ID *</label>
+                    <input type="text" id="instructor-id" 
+                           class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                           placeholder="Enter your instructor ID"
+                           required>
+                </div>
+
+                <!-- Student Name -->
+                <div class="mb-4">
+                    <label class="block text-gray-700 text-sm font-medium mb-2">Student Name *</label>
+                    <input type="text" id="student-name" 
+                           class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                           placeholder="Enter student name"
+                           required>
+                </div>
+
+                <!-- Student ID -->
+                <div class="mb-6">
+                    <label class="block text-gray-700 text-sm font-medium mb-2">Student ID *</label>
+                    <input type="text" id="student-id" 
+                           class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                           placeholder="Enter student ID"
+                           required>
+                </div>
+
+                <!-- Submit Button -->
+                <button type="submit" 
+                        class="w-full bg-blue-600 text-white py-3 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium transition duration-200">
+                    Check In
+                </button>
+            </form>
+        </div>
+
+        <!-- Manual Entry Link -->
+        <div class="text-center mt-6">
+            <button onclick="showManualEntry()" 
+                    class="text-blue-600 hover:text-blue-800 text-sm font-medium">
+                Manual Car Entry
+            </button>
+        </div>
+
+        <!-- Admin Link -->
+        <div class="text-center mt-4">
+            <a href="admin.html" 
+               class="text-gray-600 hover:text-gray-800 text-sm">
+                Admin Report →
+            </a>
+        </div>
+    </div>
+
+    <!-- Success Modal -->
+    <div id="success-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden">
+        <div class="bg-white rounded-lg p-6 mx-4 max-w-sm w-full">
+            <div class="text-center">
+                <div class="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                    </svg>
+                </div>
+                <h3 class="text-lg font-medium text-gray-900 mb-2">Check-In Successful!</h3>
+                <p class="text-gray-600 mb-4">The lesson has been recorded.</p>
+                <button onclick="closeSuccessModal()" 
+                        class="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700">
+                    New Check-In
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
