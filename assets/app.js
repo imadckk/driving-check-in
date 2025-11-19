@@ -3,6 +3,7 @@ const SUPABASE_URL = 'https://dorkygsgobhcagtqydjb.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRvcmt5Z3Nnb2JoY2FndHF5ZGpiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjEwOTc0MzcsImV4cCI6MjA3NjY3MzQzN30.bNCo8Ijj2DIr-c34P7U-lb6QK69D8OzO2sCd6SOwaW0';
 
 let pendingCheckins = JSON.parse(localStorage.getItem('pendingCheckins') || '[]');
+let pendingFormData = null; // Store form data when duplicate is detected
 
 // Initialize app when page loads
 document.addEventListener('DOMContentLoaded', function() {
@@ -55,6 +56,50 @@ document.getElementById('checkin-form').addEventListener('submit', async functio
         return;
     }
 
+    // Check for duplicate student ID for today
+    const hasDuplicate = await checkDuplicateCheckin(formData.student_id);
+    
+    if (hasDuplicate) {
+        // Show duplicate confirmation modal
+        pendingFormData = formData;
+        showDuplicateModal();
+    } else {
+        // No duplicate, proceed with submission
+        await processCheckin(formData);
+    }
+});
+
+// Check if student already has a check-in today
+async function checkDuplicateCheckin(studentId) {
+    try {
+        // Get today's date range in local timezone
+        const today = new Date();
+        const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+        const todayEnd = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
+        
+        const response = await fetch(
+            `${SUPABASE_URL}/rest/v1/check_ins?student_id=eq.${studentId}&timestamp=gte.${todayStart.toISOString()}&timestamp=lt.${todayEnd.toISOString()}&select=*`,
+            {
+                headers: {
+                    'apikey': SUPABASE_ANON_KEY,
+                    'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+                }
+            }
+        );
+        
+        if (response.ok) {
+            const existingCheckins = await response.json();
+            return existingCheckins.length > 0;
+        }
+        return false;
+    } catch (error) {
+        console.error('Error checking duplicate:', error);
+        return false;
+    }
+}
+
+// Process check-in (online or offline)
+async function processCheckin(formData) {
     if (navigator.onLine) {
         const success = await submitCheckin(formData);
         if (success) {
@@ -69,8 +114,9 @@ document.getElementById('checkin-form').addEventListener('submit', async functio
         updatePendingCount();
         showSuccessModal();
     }
-});
+}
 
+// Submit check-in to Supabase
 async function submitCheckin(data) {
     try {
         const response = await fetch(`${SUPABASE_URL}/rest/v1/check_ins`, {
@@ -86,6 +132,130 @@ async function submitCheckin(data) {
     } catch (error) {
         console.error('Submission error:', error);
         return false;
+    }
+}
+
+// Get today's check-in history
+async function getTodayCheckins() {
+    try {
+        const currentCarPlate = document.getElementById('car-plate').value;
+        
+        // If no car plate is set, return empty
+        if (!currentCarPlate || currentCarPlate === '- - - - -') {
+            return [];
+        }
+        
+        // Get today's date range in local timezone
+        const today = new Date();
+        const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+        const todayEnd = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
+        
+        const response = await fetch(
+            `${SUPABASE_URL}/rest/v1/check_ins?car_plate=eq.${currentCarPlate}&timestamp=gte.${todayStart.toISOString()}&timestamp=lt.${todayEnd.toISOString()}&order=timestamp.desc`,
+            {
+                headers: {
+                    'apikey': SUPABASE_ANON_KEY,
+                    'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+                }
+            }
+        );
+        
+        if (response.ok) {
+            return await response.json();
+        }
+        return [];
+    } catch (error) {
+        console.error('Error fetching history:', error);
+        return [];
+    }
+}
+
+// Show history modal
+async function showHistoryModal() {
+    const modal = document.getElementById('history-modal');
+    const content = document.getElementById('history-content');
+    const currentCarPlate = document.getElementById('car-plate').value;
+    
+    // Check if car plate is set
+    if (!currentCarPlate || currentCarPlate === '- - - - -') {
+        content.innerHTML = '<div class="text-center py-8 text-gray-500">Please set a car plate first to view history.</div>';
+        modal.classList.remove('hidden');
+        return;
+    }
+    
+    // Update modal title to show current car plate
+    const modalTitle = modal.querySelector('h3');
+    modalTitle.textContent = `Today's History - ${currentCarPlate}`;
+    
+    // Show loading state
+    content.innerHTML = '<div class="text-center py-8 text-gray-500">Loading history...</div>';
+    modal.classList.remove('hidden');
+    
+    try {
+        const checkins = await getTodayCheckins();
+        
+        if (checkins.length === 0) {
+            content.innerHTML = `
+                <div class="text-center py-8 text-gray-500">
+                    No check-ins found for today for car plate:<br>
+                    <span class="font-medium">${currentCarPlate}</span>
+                </div>`;
+            return;
+        }
+        
+        let html = `
+            <div class="text-sm text-gray-600 mb-3 text-center">
+                Showing history for: <span class="font-medium">${currentCarPlate}</span>
+            </div>
+            <div class="space-y-3">
+        `;
+        
+        checkins.forEach(checkin => {
+            const time = new Date(checkin.timestamp).toLocaleTimeString();
+            html += `
+                <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                    <div class="flex justify-between items-start mb-2">
+                        <div>
+                            <h4 class="font-medium text-gray-900">${checkin.student_name}</h4>
+                            <p class="text-sm text-gray-600">${checkin.student_id}</p>
+                        </div>
+                        <span class="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">${time}</span>
+                    </div>
+                    <div class="flex justify-between text-sm">
+                        <span class="text-gray-700">Instructor: ${checkin.instructor_id}</span>
+                    </div>
+                </div>
+            `;
+        });
+        html += '</div>';
+        
+        content.innerHTML = html;
+    } catch (error) {
+        content.innerHTML = '<div class="text-center py-8 text-red-500">Error loading history.</div>';
+    }
+}
+
+// Close history modal
+function closeHistoryModal() {
+    document.getElementById('history-modal').classList.add('hidden');
+}
+
+// Show duplicate confirmation modal
+function showDuplicateModal() {
+    document.getElementById('duplicate-modal').classList.remove('hidden');
+}
+
+// Close duplicate modal
+function closeDuplicateModal() {
+    document.getElementById('duplicate-modal').classList.add('hidden');
+    pendingFormData = null;
+}
+
+// Confirm duplicate check-in
+function confirmDuplicateCheckin() {
+    if (pendingFormData) {
+        processCheckin(pendingFormData);
+        closeDuplicateModal();
     }
 }
 
