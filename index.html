@@ -12,6 +12,13 @@
         <!-- Header -->
         <div class="text-center mb-8">
             <h1 class="text-2xl font-bold text-gray-800">Driving Lesson Check-In</h1>
+            <!-- History Link -->
+            <div class="mt-4">
+                <button onclick="showHistoryModal()" 
+                        class="text-blue-600 hover:text-blue-800 text-sm font-medium">
+                    View Today's Check-In History
+                </button>
+            </div>
         </div>
 
         <!-- Check-in Form -->
@@ -71,7 +78,7 @@
         </div>
 
         <!-- Success Modal -->
-        <div id="success-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden">
+        <div id="success-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
             <div class="bg-white rounded-lg p-6 mx-4 max-w-sm w-full">
                 <div class="text-center">
                     <div class="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -85,6 +92,51 @@
                             class="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700">
                         New Check-In
                     </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Duplicate Confirmation Modal -->
+        <div id="duplicate-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
+            <div class="bg-white rounded-lg p-6 mx-4 max-w-sm w-full">
+                <div class="text-center">
+                    <div class="w-12 h-12 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <svg class="w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.35 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
+                        </svg>
+                    </div>
+                    <h3 class="text-lg font-medium text-gray-900 mb-2">Duplicate Check-In Detected</h3>
+                    <p class="text-gray-600 mb-4">This student already has a check-in today. Are you sure you want to proceed?</p>
+                    <div class="flex space-x-3">
+                        <button onclick="closeDuplicateModal()" 
+                                class="flex-1 bg-gray-300 text-gray-700 py-2 px-4 rounded-md hover:bg-gray-400">
+                            Cancel
+                        </button>
+                        <button onclick="confirmDuplicateCheckin()" 
+                                class="flex-1 bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700">
+                            Proceed
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- History Modal -->
+        <div id="history-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
+            <div class="bg-white rounded-lg p-6 mx-4 max-w-md w-full max-h-96 overflow-hidden flex flex-col">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-lg font-medium text-gray-900">Today's Check-In History</h3>
+                    <button onclick="closeHistoryModal()" class="text-gray-400 hover:text-gray-600">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+                <div id="history-content" class="flex-1 overflow-y-auto">
+                    <!-- History cards will be loaded here -->
+                    <div class="text-center py-8 text-gray-500">
+                        Loading history...
+                    </div>
                 </div>
             </div>
         </div>
