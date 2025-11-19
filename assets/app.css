@@ -51,9 +51,9 @@
 
 .plate-text {
     color: #ffffff;
-    font-family: 'Courier New', 'OCR A Extended', 'OCR-B', 'Liberation Mono', 'DejaVu Sans Mono', monospace;
+    font-family: "Stack Sans Text", sans-serif;
     font-size: 32px;
-    font-weight: bold;
+    font-weight: 700;
     letter-spacing: 2px;
     text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
     text-transform: uppercase;
