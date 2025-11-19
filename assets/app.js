@@ -274,11 +274,20 @@ function closeSuccessModal() {
     document.getElementById('success-modal').classList.add('hidden');
     document.getElementById('checkin-form').reset();
     
-    // Clear URL parameters but keep the page
-    window.history.replaceState({}, '', window.location.pathname);
+    // Get current car plate before clearing
+    const currentCarPlate = document.getElementById('car-plate').value;
     
-    // Clear car plate display
-    setCarPlate('');
+    // Keep the car plate in URL parameters instead of clearing them
+    if (currentCarPlate && currentCarPlate !== '- - - - -') {
+        const newUrl = new URL(window.location);
+        newUrl.searchParams.set('car', currentCarPlate);
+        window.history.replaceState({}, '', newUrl);
+    }
+    
+    // Clear form fields except car plate
+    document.getElementById('instructor-id').value = '';
+    document.getElementById('student-name').value = '';
+    document.getElementById('student-id').value = '';
     
     updatePendingCount();
 }
