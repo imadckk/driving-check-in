@@ -47,19 +47,22 @@
                 <div>
                     <label class="block text-gray-700 text-sm font-medium mb-2">Date</label>
                     <input type="date" id="date-filter" 
-                           class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                           class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 uppercase"
+                           oninput="syncDateToDevice()">
                 </div>
                 <div>
                     <label class="block text-gray-700 text-sm font-medium mb-2">Instructor ID</label>
                     <input type="text" id="instructor-filter" 
-                           class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                           placeholder="Filter by instructor">
+                           class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 uppercase"
+                           placeholder="Filter by instructor"
+                           oninput="this.value = this.value.toUpperCase()">
                 </div>
                 <div>
                     <label class="block text-gray-700 text-sm font-medium mb-2">Car Plate</label>
                     <input type="text" id="car-filter" 
-                           class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                           placeholder="Filter by car">
+                           class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 uppercase"
+                           placeholder="Filter by car"
+                           oninput="this.value = this.value.toUpperCase()">
                 </div>
             </div>
             <div class="flex gap-2 mt-4">
