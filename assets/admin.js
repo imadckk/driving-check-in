@@ -7,7 +7,6 @@ let currentPDF = null;
 const { jsPDF } = window.jspdf;
 
 document.addEventListener('DOMContentLoaded', function() {
-    loadCheckins();
     
     // Set today's date as default filter
     const today = new Date().toISOString().split('T')[0];
