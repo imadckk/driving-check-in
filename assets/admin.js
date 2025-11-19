@@ -6,11 +6,44 @@ let allCheckins = [];
 let currentPDF = null;
 const { jsPDF } = window.jspdf;
 
+// Sync date picker to device date
+function syncDateToDevice() {
+    const dateFilter = document.getElementById('date-filter');
+    const deviceDate = new Date().toISOString().split('T')[0];
+    
+    // If no date is selected, default to device date
+    if (!dateFilter.value) {
+        dateFilter.value = deviceDate;
+    }
+}
+
+// Force uppercase for all text inputs
+function forceUppercase(input) {
+    input.value = input.value.toUpperCase();
+}
+
+// Initialize uppercase behavior for all text inputs
+function initializeUppercaseInputs() {
+    const textInputs = document.querySelectorAll('input[type="text"]');
+    textInputs.forEach(input => {
+        // Set current value to uppercase
+        input.value = input.value.toUpperCase();
+        
+        // Add event listener for future input
+        input.addEventListener('input', function() {
+            this.value = this.value.toUpperCase();
+        });
+    });
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     
-    // Set today's date as default filter
+     // Set today's date as default filter using device date
     const today = new Date().toISOString().split('T')[0];
     document.getElementById('date-filter').value = today;
+    
+    // Initialize uppercase inputs
+    initializeUppercaseInputs();
     
     // Auto-refresh every 30 seconds
     setInterval(loadCheckins, 30000);
@@ -138,6 +171,8 @@ function clearFilters() {
     document.getElementById('date-filter').value = '';
     document.getElementById('instructor-filter').value = '';
     document.getElementById('car-filter').value = '';
+    // Sync to device date after clearing
+    setTimeout(syncDateToDevice, 100);
     loadCheckins();
 }
 
