@@ -14,6 +14,7 @@ document.addEventListener('DOMContentLoaded', function() {
     if (carPlate) {
         setCarPlate(carPlate);
     }
+    initializeSessionToggle();
 
     // Load pending check-ins count
     updatePendingCount();
@@ -72,6 +73,36 @@ function updateTotalTimeDisplay() {
     }
 }
 
+// Add after the configuration section
+function initializeSessionToggle() {
+    const sessionRadios = document.querySelectorAll('input[name="session"]');
+    const sessionSlider = document.querySelector('.session-slider');
+    
+    sessionRadios.forEach(radio => {
+        radio.addEventListener('change', function() {
+            // The CSS handles the visual movement through the transform property
+            console.log('Session selected:', this.value);
+        });
+        
+        // Add keyboard navigation
+        radio.addEventListener('keydown', function(e) {
+            if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+                e.preventDefault();
+                const currentIndex = Array.from(sessionRadios).indexOf(this);
+                const nextIndex = e.key === 'ArrowRight' 
+                    ? (currentIndex + 1) % sessionRadios.length 
+                    : (currentIndex - 1 + sessionRadios.length) % sessionRadios.length;
+                sessionRadios[nextIndex].checked = true;
+                sessionRadios[nextIndex].focus();
+            }
+        });
+    });
+    
+    // Set initial state if needed
+    if (!document.querySelector('input[name="session"]:checked')) {
+        sessionRadios[0].checked = true;
+    }
+}
 
 // Form submission handler
 document.getElementById('checkin-form').addEventListener('submit', async function(e) {
