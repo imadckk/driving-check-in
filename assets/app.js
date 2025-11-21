@@ -36,23 +36,75 @@ function setCarPlate(plate) {
     }
 }
 
+// Add after the configuration section
+function formatTimeAMPM(date) {
+    let hours = date.getHours();
+    let minutes = date.getMinutes();
+    const ampm = hours >= 12 ? 'pm' : 'am';
+    
+    hours = hours % 12;
+    hours = hours ? hours : 12; // the hour '0' should be '12'
+    minutes = minutes < 10 ? '0' + minutes : minutes;
+    
+    return `${hours}:${minutes} ${ampm}`;
+}
+
+function calculateEndTime(startTime, durationHours) {
+    const endTime = new Date(startTime.getTime() + (durationHours * 60 * 60 * 1000));
+    return endTime;
+}
+
+function updateTotalTimeDisplay() {
+    const durationSelect = document.getElementById('duration');
+    const totalTimeDisplay = document.getElementById('total-time-display');
+    
+    if (durationSelect.value) {
+        const now = new Date();
+        const duration = parseFloat(durationSelect.value);
+        const endTime = calculateEndTime(now, duration);
+        
+        const startTimeFormatted = formatTimeAMPM(now);
+        const endTimeFormatted = formatTimeAMPM(endTime);
+        
+        totalTimeDisplay.textContent = `${startTimeFormatted} - ${endTimeFormatted}`;
+    } else {
+        totalTimeDisplay.textContent = 'Select duration to see time range';
+    }
+}
+
+
 // Form submission handler
 document.getElementById('checkin-form').addEventListener('submit', async function(e) {
     e.preventDefault();
     
     // Use device's local date and time
     const now = new Date();
+    const duration = parseFloat(document.getElementById('duration').value);
+    const endTime = calculateEndTime(now, duration);
     const formData = {
         car_plate: document.getElementById('car-plate').value,
         instructor_id: document.getElementById('instructor-id').value,
         student_name: document.getElementById('student-name').value,
         student_id: document.getElementById('student-id').value,
+        session: document.querySelector('input[name="session"]:checked')?.value,
+        duration: duration,
+        start_time: formatTimeAMPM(now),
+        end_time: formatTimeAMPM(endTime),
         timestamp: now.toISOString(), // Store as ISO string for consistency
     };
 
     // Validate car plate
     if (!formData.car_plate || formData.car_plate === '- - - - -') {
         alert('Please enter car plate or scan QR code');
+        return;
+    }
+     if (!formData.session) {
+        alert('Please select a session');
+        return;
+    }
+    
+    if (!formData.duration) {
+        alert('Please select duration');
         return;
     }
 
@@ -219,10 +271,14 @@ async function showHistoryModal() {
                             <h4 class="font-medium text-gray-900">${checkin.student_name}</h4>
                             <p class="text-sm text-gray-600">${checkin.student_id}</p>
                         </div>
-                        <span class="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">${time}</span>
+                        <div class="text-right">
+                            <span class="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">${checkin.session}</span>
+                            <div class="text-xs text-gray-500 mt-1">${checkin.start_time} - ${checkin.end_time}</div>
+                        </div>
                     </div>
                     <div class="flex justify-between text-sm">
                         <span class="text-gray-700">Instructor: ${checkin.instructor_id}</span>
+                        <span class="text-gray-700">Duration: ${checkin.duration} hours</span>
                     </div>
                 </div>
             `;
@@ -270,6 +326,9 @@ function showSuccessModal() {
     document.getElementById('success-modal').classList.remove('hidden');
 }
 
+// Add event listener for duration change
+document.getElementById('duration').addEventListener('change', updateTotalTimeDisplay);
+
 function closeSuccessModal() {
     document.getElementById('success-modal').classList.add('hidden');
     document.getElementById('checkin-form').reset();
@@ -288,6 +347,7 @@ function closeSuccessModal() {
     document.getElementById('instructor-id').value = '';
     document.getElementById('student-name').value = '';
     document.getElementById('student-id').value = '';
+    document.getElementById('total-time-display').textContent = 'Select duration to see time range';
     
     updatePendingCount();
 }
