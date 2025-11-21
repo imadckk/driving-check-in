@@ -43,18 +43,27 @@
                     
                 </div>
 
-                <!-- Add after the car plate section and before instructor ID -->
+                <!-- Replace the session section with this -->
                 <div class="mb-4">
-                    <label class="block text-gray-700 text-sm font-medium mb-2">Session *</label>
-                    <div class="flex space-x-4">
-                        <label class="inline-flex items-center">
-                            <input type="radio" name="session" value="KPP02" class="form-radio text-blue-600" required>
-                            <span class="ml-2">KPP02</span>
-                        </label>
-                        <label class="inline-flex items-center">
-                            <input type="radio" name="session" value="KPP03" class="form-radio text-blue-600">
-                            <span class="ml-2">KPP03</span>
-                        </label>
+                    <label class="block text-gray-700 text-sm font-medium mb-3">Session *</label>
+                    <div class="flex items-center justify-center">
+                        <!-- Toggle Switch Container -->
+                        <div class="relative inline-flex items-center bg-gray-200 rounded-full p-1">
+                            <!-- KPP02 Option -->
+                            <input type="radio" name="session" value="KPP02" id="session-kpp02" class="sr-only" required>
+                            <label for="session-kpp02" class="relative flex items-center justify-center px-6 py-2 text-sm font-medium rounded-full cursor-pointer transition-all duration-200 session-option">
+                                <span class="z-10">KPP02</span>
+                            </label>
+                            
+                            <!-- KPP03 Option -->
+                            <input type="radio" name="session" value="KPP03" id="session-kpp03" class="sr-only">
+                            <label for="session-kpp03" class="relative flex items-center justify-center px-6 py-2 text-sm font-medium rounded-full cursor-pointer transition-all duration-200 session-option">
+                                <span class="z-10">KPP03</span>
+                            </label>
+                            
+                            <!-- Sliding Background -->
+                            <div class="absolute top-1 left-1 w-1/2 h-8 bg-white rounded-full shadow-md transition-transform duration-200 transform session-slider"></div>
+                        </div>
                     </div>
                 </div>
                 
