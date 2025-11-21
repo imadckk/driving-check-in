@@ -13,13 +13,41 @@
     transition: all 0.3s ease;
 }
 
-.form-radio:checked {
-    background-color: #2563eb;
-    border-color: #2563eb;
+/* Toggle Switch Styles */
+.session-option {
+    min-width: 80px;
+    z-index: 10;
 }
 
-.form-radio {
-    border: 2px solid #d1d5db;
+/* Default state - unselected */
+.session-option {
+    color: #6b7280;
+}
+
+/* Selected state */
+input[type="radio"]:checked + .session-option {
+    color: #2563eb;
+    font-weight: 600;
+}
+
+/* Slider positioning based on selection */
+#session-kpp02:checked ~ .session-slider {
+    transform: translateX(0);
+}
+
+#session-kpp03:checked ~ .session-slider {
+    transform: translateX(100%);
+}
+
+/* Hover effects */
+.session-option:hover {
+    color: #374151;
+}
+
+/* Focus states for accessibility */
+input[type="radio"]:focus + .session-option {
+    outline: 2px solid #3b82f6;
+    outline-offset: 2px;
 }
 
 /* 3D Extrude Effect */
