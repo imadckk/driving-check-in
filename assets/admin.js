@@ -371,7 +371,7 @@ function createPDF() {
 
         // Table setup - Use auto column widths
         const columnConfig = [
-            { header: 'Time', width: 22 },      // Reduced from 25
+            { header: 'Date', width: 22 },      // Reduced from 25
             { header: 'Session', width: 12 },   // Same
             { header: 'Instructor', width: 18 }, // Reduced from 20
             { header: 'Student', width: 39 },   // Reduced from 25
