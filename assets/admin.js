@@ -266,9 +266,15 @@ function formatToLocalDateTime(isoString) {
 // Format date only (for filtering)
 function formatToLocalDate(isoString) {
     const date = new Date(isoString);
-    return date.toLocaleDateString();
+    
+    // Get individual date components
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0'); // Months are 0-based
+    const year = date.getFullYear();
+    
+    // Format as DD/MM/YYYY
+    return `${day}/${month}/${year}`;
 }
-
 // Generate PDF and show preview
 async function generatePDFPreview() {
     if (allCheckins.length === 0) {
@@ -448,6 +454,11 @@ function createPDF() {
                 hour12: true 
             });
             doc.text(timeText, cellX, yPosition + 5);
+            cellX += columnConfig[0].width;
+
+            // Date column - Show date in DD/MM/YYYY format
+            const dateText = formatToLocalDate(checkin.timestamp);
+            doc.text(dateText, cellX, yPosition + 5);
             cellX += columnConfig[0].width;
             
             // Session column
