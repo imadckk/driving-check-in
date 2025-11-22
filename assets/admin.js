@@ -374,11 +374,11 @@ function createPDF() {
             { header: 'Time', width: 22 },      // Reduced from 25
             { header: 'Session', width: 12 },   // Same
             { header: 'Instructor', width: 18 }, // Reduced from 20
-            { header: 'Student', width: 22 },   // Reduced from 25
+            { header: 'Student', width: 37 },   // Reduced from 25
             { header: 'Student ID', width: 25 }, // Increased from 20
             { header: 'Car Plate', width: 18 }, // Increased from 15
-            { header: 'Duration', width: 12 },  // Same
-            { header: 'Time Range', width: 35 } // Increased from 25
+            { header: 'Duration', width: 10 },  // Same
+            { header: 'Time Range', width: 30 } // Increased from 25
         ];
 
         const rowHeight = 8;
