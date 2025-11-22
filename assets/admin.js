@@ -370,7 +370,7 @@ function createPDF() {
         doc.setTextColor(colors.text[0], colors.text[1], colors.text[2]);
 
         // Table setup - Adjusted for more columns
-        const columnWidths = [25, 12, 20, 25, 20, 15, 20, 25]; // Adjusted widths
+        const columnWidths = [20, 12, 15, 35, 25, 20, 15, 35]; // Adjusted widths
         const rowHeight = 8; // Smaller row height
         let yPosition = 50;
 
