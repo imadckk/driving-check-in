@@ -59,6 +59,7 @@ async function loadCheckins() {
         const dateFilter = document.getElementById('date-filter').value;
         const instructorFilter = document.getElementById('instructor-filter').value;
         const carFilter = document.getElementById('car-filter').value;
+        const sessionFilter = document.getElementById('session-filter').value; 
         
         if (dateFilter) {
             const nextDay = new Date(dateFilter);
@@ -74,6 +75,10 @@ async function loadCheckins() {
         
         if (carFilter) {
             url += `&car_plate=eq.${encodeURIComponent(carFilter)}`;
+        }
+
+        if (sessionFilter) { 
+            url += `&session=eq.${encodeURIComponent(sessionFilter)}`;
         }
         
         const response = await fetch(url, {
@@ -120,6 +125,13 @@ function displayCheckins() {
                 ${formatToLocalDateTime(checkin.timestamp)}
             </td>
             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                    checkin.session === 'KPP02' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'
+                }">
+                    ${escapeHtml(checkin.session || 'N/A')}
+                </span>
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                 ${escapeHtml(checkin.instructor_id)}
             </td>
             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
@@ -131,17 +143,33 @@ function displayCheckins() {
             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                 ${escapeHtml(checkin.car_plate)}
             </td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                ${checkin.duration ? checkin.duration + ' hours' : 'N/A'}
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                ${checkin.start_time && checkin.end_time ? 
+                  `${escapeHtml(checkin.start_time)} - ${escapeHtml(checkin.end_time)}` : 'N/A'}
+            </td>
         </tr>
     `).join('');
     
     // Mobile Cards
     mobileCards.innerHTML = allCheckins.map(checkin => `
-        <div class="bg-white rounded-lg shadow-md p-4 border-l-4 border-blue-500">
+        <div class="bg-white rounded-lg shadow-md p-4 border-l-4 ${
+            checkin.session === 'KPP02' ? 'border-blue-500' : 'border-green-500'
+        }">
             <div class="flex justify-between items-start mb-2">
                 <div class="text-sm text-gray-500">${formatToLocalDateTime(checkin.timestamp)}</div>
-                <span class="bg-blue-100 text-blue-800 text-xs font-medium px-2 py-1 rounded">
-                    ${escapeHtml(checkin.car_plate)}
-                </span>
+                <div class="flex flex-col items-end gap-1">
+                    <span class="bg-blue-100 text-blue-800 text-xs font-medium px-2 py-1 rounded">
+                        ${escapeHtml(checkin.car_plate)}
+                    </span>
+                    <span class="text-xs font-medium ${
+                        checkin.session === 'KPP02' ? 'text-blue-600' : 'text-green-600'
+                    }">
+                        ${escapeHtml(checkin.session || 'N/A')}
+                    </span>
+                </div>
             </div>
             <div class="space-y-2">
                 <div>
@@ -158,6 +186,17 @@ function displayCheckins() {
                         <div class="font-medium">${escapeHtml(checkin.student_id)}</div>
                     </div>
                 </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <div class="text-xs text-gray-500">Duration</div>
+                        <div class="font-medium">${checkin.duration ? checkin.duration + ' hours' : 'N/A'}</div>
+                    </div>
+                    <div>
+                        <div class="text-xs text-gray-500">Time Range</div>
+                        <div class="font-medium text-sm">${checkin.start_time && checkin.end_time ? 
+                            `${escapeHtml(checkin.start_time)} - ${escapeHtml(checkin.end_time)}` : 'N/A'}</div>
+                    </div>
+                </div>
             </div>
         </div>
     `).join('');
@@ -171,6 +210,7 @@ function clearFilters() {
     document.getElementById('date-filter').value = '';
     document.getElementById('instructor-filter').value = '';
     document.getElementById('car-filter').value = '';
+    document.getElementById('session-filter').value = ''; 
     // Sync to device date after clearing
     setTimeout(syncDateToDevice, 100);
     loadCheckins();
@@ -281,7 +321,7 @@ function createPDF() {
     return new Promise((resolve) => {
         const doc = new jsPDF();
         const pageWidth = doc.internal.pageSize.getWidth();
-        const margin = 20;
+        const margin = 15;
         const contentWidth = pageWidth - (margin * 2);
 
         // === COLOR CONFIGURATION ===
@@ -296,7 +336,7 @@ function createPDF() {
         };
 
         // Title
-        doc.setFontSize(18);
+        doc.setFontSize(16);
         doc.setFont('helvetica', 'bold');
         doc.setTextColor(colors.title[0], colors.title[1], colors.title[2]);
         doc.text('Driving Lesson Check-In Report', margin, 25);
@@ -308,54 +348,53 @@ function createPDF() {
         const dateFilter = document.getElementById('date-filter').value;
         const instructorFilter = document.getElementById('instructor-filter').value;
         const carFilter = document.getElementById('car-filter').value;
+        const sessionFilter = document.getElementById('session-filter').value;
         
         let filterText = `Generated: ${new Date().toLocaleString()}`;
         if (dateFilter) filterText += ` | Date: ${dateFilter}`;
         if (instructorFilter) filterText += ` | Instructor: ${instructorFilter}`;
         if (carFilter) filterText += ` | Car: ${carFilter}`;
+        if (sessionFilter) filterText += ` | Session: ${sessionFilter}`;
         
-        doc.text(filterText, margin, 35);
+        doc.text(filterText, margin, 28);
 
         // Summary box
         doc.setFillColor(colors.summary[0], colors.summary[1], colors.summary[2]);
         doc.rect(margin, 42, 60, 12, 'F');
-        doc.setFontSize(11);
+        doc.setFontSize(10);
         doc.setFont('helvetica', 'bold');
         doc.setTextColor(255, 255, 255);
-        doc.text(`Total Check-Ins: ${allCheckins.length}`, margin + 5, 50);
+        doc.text(`Total Check-Ins: ${allCheckins.length}`, margin + 5, 40);
 
         // Reset text color for table
         doc.setTextColor(colors.text[0], colors.text[1], colors.text[2]);
 
         // Table setup
-        const columnWidths = [45, 30, 35, 30, 30]; // Widths for each column
-        const rowHeight = 10;
-        let yPosition = 65;
+        const columnWidths = [25, 12, 20, 25, 20, 15, 20, 25]; // Widths for each column
+        const rowHeight = 8;
+        let yPosition = 50;
 
         // Draw table headers
         doc.setFillColor(colors.headerBg[0], colors.headerBg[1], colors.headerBg[2]);
         doc.rect(margin, yPosition, contentWidth, rowHeight, 'F');
         
-        doc.setFontSize(10);
+        doc.setFontSize(7);
         doc.setFont('helvetica', 'bold');
         doc.setTextColor(colors.headerText[0], colors.headerText[1], colors.headerText[2]);
         
-        let xPosition = margin + 2;
-        doc.text('Time', xPosition, yPosition + 7);
-        xPosition += columnWidths[0];
-        doc.text('Instructor', xPosition, yPosition + 7);
-        xPosition += columnWidths[1];
-        doc.text('Student Name', xPosition, yPosition + 7);
-        xPosition += columnWidths[2];
-        doc.text('Student ID', xPosition, yPosition + 7);
-        xPosition += columnWidths[3];
-        doc.text('Car Plate', xPosition, yPosition + 7);
-
+        const headers = ['Time', 'Session', 'Instructor', 'Student', 'Student ID', 'Car', 'Duration', 'Time Range'];
+        let xPosition = margin + 1;
+        
+        headers.forEach((header, index) => {
+            doc.text(header, xPosition, yPosition + 5);
+            xPosition += columnWidths[index];
+        });
+        
         yPosition += rowHeight;
 
         // Table rows
         doc.setFont('helvetica', 'normal');
-        doc.setFontSize(10);
+        doc.setFontSize(8);
 
         allCheckins.forEach((checkin, index) => {
             // Check if we need a new page
@@ -371,16 +410,11 @@ function createPDF() {
                 doc.setFont('helvetica', 'bold');
                 doc.setTextColor(colors.headerText[0], colors.headerText[1], colors.headerText[2]);
                 
-                let xPos = margin + 2;
-                doc.text('Time', xPos, yPosition + 7);
-                xPos += columnWidths[0];
-                doc.text('Instructor', xPos, yPosition + 7);
-                xPos += columnWidths[1];
-                doc.text('Student Name', xPos, yPosition + 7);
-                xPos += columnWidths[2];
-                doc.text('Student ID', xPos, yPosition + 7);
-                xPos += columnWidths[3];
-                doc.text('Car Plate', xPos, yPosition + 7);
+                let xPos = margin + 1;
+                headers.forEach((header, i) => {
+                    doc.text(header, xPos, yPosition + 5);
+                    xPos += columnWidths[i];
+                });
 
                 yPosition += rowHeight;
             }
@@ -400,8 +434,17 @@ function createPDF() {
             let cellX = margin + 2;
             
             // Time column
-            doc.text(formatToLocalDateTime(checkin.timestamp), cellX, yPosition + 7);
+            const timeText = new Date(checkin.timestamp).toLocaleTimeString('en-US', { 
+                hour: '2-digit', 
+                minute: '2-digit',
+                hour12: true 
+            });
+            doc.text(timeText, cellX, yPosition + 5);
             cellX += columnWidths[0];
+
+            // Session column
+            doc.text(checkin.session || 'N/A', cellX, yPosition + 5);
+            cellX += columnWidths[1];
             
             // Instructor column
             doc.text(truncateText(checkin.instructor_id, 12), cellX, yPosition + 7);
@@ -417,6 +460,15 @@ function createPDF() {
             
             // Car Plate column
             doc.text(truncateText(checkin.car_plate, 8), cellX, yPosition + 7);
+
+            // Duration column
+            doc.text(checkin.duration ? checkin.duration + 'h' : 'N/A', cellX, yPosition + 5);
+            cellX += columnWidths[6];
+
+            // Time Range column
+            const timeRange = checkin.start_time && checkin.end_time ? 
+                `${checkin.start_time} - ${checkin.end_time}` : 'N/A';
+            doc.text(truncateText(timeRange, 15), cellX, yPosition + 5);
 
             yPosition += rowHeight;
         });
