@@ -321,28 +321,28 @@ function createPDF() {
     return new Promise((resolve) => {
         const doc = new jsPDF();
         const pageWidth = doc.internal.pageSize.getWidth();
-        const margin = 15; // Reduced margin for more columns
+        const margin = 15;
         const contentWidth = pageWidth - (margin * 2);
 
         // === COLOR CONFIGURATION ===
         const colors = {
-            headerBg: [59, 130, 246],     // Blue header
-            headerText: [255, 255, 255],  // White header text
-            evenRowBg: [249, 250, 251],   // Light gray for even rows
-            oddRowBg: [255, 255, 255],    // White for odd rows
-            text: [0, 0, 0],              // Black text
-            title: [31, 41, 55],          // Gray-800 for title
-            summary: [59, 130, 246]       // Blue for summary
+            headerBg: [59, 130, 246],
+            headerText: [255, 255, 255],
+            evenRowBg: [249, 250, 251],
+            oddRowBg: [255, 255, 255],
+            text: [0, 0, 0],
+            title: [31, 41, 55],
+            summary: [59, 130, 246]
         };
 
         // Title
-        doc.setFontSize(16); // Slightly smaller for more columns
+        doc.setFontSize(16);
         doc.setFont('helvetica', 'bold');
         doc.setTextColor(colors.title[0], colors.title[1], colors.title[2]);
         doc.text('Driving Lesson Check-In Report', margin, 20);
 
         // Date range and filters
-        doc.setFontSize(8); // Smaller font
+        doc.setFontSize(8);
         doc.setFont('helvetica', 'normal');
         doc.setTextColor(100, 100, 100);
         const dateFilter = document.getElementById('date-filter').value;
@@ -360,7 +360,7 @@ function createPDF() {
 
         // Summary box
         doc.setFillColor(colors.summary[0], colors.summary[1], colors.summary[2]);
-        doc.rect(margin, 33, 50, 8, 'F'); // Smaller box
+        doc.rect(margin, 33, 50, 8, 'F');
         doc.setFontSize(9);
         doc.setFont('helvetica', 'bold');
         doc.setTextColor(255, 255, 255);
@@ -369,32 +369,40 @@ function createPDF() {
         // Reset text color for table
         doc.setTextColor(colors.text[0], colors.text[1], colors.text[2]);
 
-        // Table setup - Adjusted for more columns
-        const columnWidths = [20, 12, 15, 35, 25, 20, 15, 35]; // Adjusted widths
-        const rowHeight = 8; // Smaller row height
+        // Table setup - Use auto column widths
+        const columnConfig = [
+            { header: 'Time', width: 22 },      // Reduced from 25
+            { header: 'Session', width: 12 },   // Same
+            { header: 'Instructor', width: 18 }, // Reduced from 20
+            { header: 'Student', width: 22 },   // Reduced from 25
+            { header: 'Student ID', width: 25 }, // Increased from 20
+            { header: 'Car Plate', width: 18 }, // Increased from 15
+            { header: 'Duration', width: 12 },  // Same
+            { header: 'Time Range', width: 35 } // Increased from 25
+        ];
+
+        const rowHeight = 8;
         let yPosition = 50;
 
         // Draw table headers
         doc.setFillColor(colors.headerBg[0], colors.headerBg[1], colors.headerBg[2]);
         doc.rect(margin, yPosition, contentWidth, rowHeight, 'F');
         
-        doc.setFontSize(7); // Smaller font for headers
+        doc.setFontSize(7);
         doc.setFont('helvetica', 'bold');
         doc.setTextColor(colors.headerText[0], colors.headerText[1], colors.headerText[2]);
         
-        const headers = ['Time', 'Session', 'Instructor', 'Student', 'Student ID', 'Car', 'Duration', 'Time Range'];
         let xPosition = margin + 1;
-        
-        headers.forEach((header, index) => {
-            doc.text(header, xPosition, yPosition + 5);
-            xPosition += columnWidths[index];
+        columnConfig.forEach((col, index) => {
+            doc.text(col.header, xPosition, yPosition + 5);
+            xPosition += col.width;
         });
 
         yPosition += rowHeight;
 
         // Table rows
         doc.setFont('helvetica', 'normal');
-        doc.setFontSize(6); // Smaller font for content
+        doc.setFontSize(6);
 
         allCheckins.forEach((checkin, index) => {
             // Check if we need a new page
@@ -411,9 +419,9 @@ function createPDF() {
                 doc.setTextColor(colors.headerText[0], colors.headerText[1], colors.headerText[2]);
                 
                 let xPos = margin + 1;
-                headers.forEach((header, i) => {
-                    doc.text(header, xPos, yPosition + 5);
-                    xPos += columnWidths[i];
+                columnConfig.forEach(col => {
+                    doc.text(col.header, xPos, yPosition + 5);
+                    xPos += col.width;
                 });
 
                 yPosition += rowHeight;
@@ -433,43 +441,43 @@ function createPDF() {
             
             let cellX = margin + 1;
             
-            // Time column
+            // Time column - Show only time (not full date)
             const timeText = new Date(checkin.timestamp).toLocaleTimeString('en-US', { 
                 hour: '2-digit', 
                 minute: '2-digit',
                 hour12: true 
             });
             doc.text(timeText, cellX, yPosition + 5);
-            cellX += columnWidths[0];
+            cellX += columnConfig[0].width;
             
             // Session column
             doc.text(checkin.session || 'N/A', cellX, yPosition + 5);
-            cellX += columnWidths[1];
+            cellX += columnConfig[1].width;
             
-            // Instructor column
-            doc.text(truncateText(checkin.instructor_id, 10), cellX, yPosition + 5);
-            cellX += columnWidths[2];
+            // Instructor column - No truncation
+            doc.text(checkin.instructor_id || 'N/A', cellX, yPosition + 5);
+            cellX += columnConfig[2].width;
             
-            // Student Name column
-            doc.text(truncateText(checkin.student_name, 12), cellX, yPosition + 5);
-            cellX += columnWidths[3];
+            // Student Name column - No truncation
+            doc.text(checkin.student_name || 'N/A', cellX, yPosition + 5);
+            cellX += columnConfig[3].width;
             
-            // Student ID column
-            doc.text(truncateText(checkin.student_id, 10), cellX, yPosition + 5);
-            cellX += columnWidths[4];
+            // Student ID column - No truncation, full display
+            doc.text(checkin.student_id || 'N/A', cellX, yPosition + 5);
+            cellX += columnConfig[4].width;
             
-            // Car Plate column
-            doc.text(truncateText(checkin.car_plate, 6), cellX, yPosition + 5);
-            cellX += columnWidths[5];
+            // Car Plate column - No truncation, full display
+            doc.text(checkin.car_plate || 'N/A', cellX, yPosition + 5);
+            cellX += columnConfig[5].width;
             
             // Duration column
             doc.text(checkin.duration ? checkin.duration + 'h' : 'N/A', cellX, yPosition + 5);
-            cellX += columnWidths[6];
+            cellX += columnConfig[6].width;
             
-            // Time Range column
+            // Time Range column - No truncation, full display
             const timeRange = checkin.start_time && checkin.end_time ? 
                 `${checkin.start_time} - ${checkin.end_time}` : 'N/A';
-            doc.text(truncateText(timeRange, 15), cellX, yPosition + 5);
+            doc.text(timeRange, cellX, yPosition + 5);
 
             yPosition += rowHeight;
         });
@@ -515,13 +523,7 @@ function closePDFPreview() {
     currentPDF = null;
 }
 
-// Helper function to truncate text for PDF display
-function truncateText(text, maxLength) {
-    if (!text) return '';
-    const str = text.toString();
-    if (str.length <= maxLength) return str;
-    return str.substring(0, maxLength - 1) + '…';
-}
+
 
 // Alternative: Generate PDF using HTML content for better styling (optional)
 async function generateStyledPDFPreview() {
