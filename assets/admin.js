@@ -447,14 +447,7 @@ function createPDF() {
             
             let cellX = margin + 1;
             
-            // Time column - Show only time (not full date)
-            const timeText = new Date(checkin.timestamp).toLocaleTimeString('en-US', { 
-                hour: '2-digit', 
-                minute: '2-digit',
-                hour12: true 
-            });
-            doc.text(timeText, cellX, yPosition + 5);
-            cellX += columnConfig[0].width;
+            
 
             // Date column - Show date in DD/MM/YYYY format
             const dateText = formatToLocalDate(checkin.timestamp);
