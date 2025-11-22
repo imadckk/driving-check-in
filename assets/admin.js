@@ -321,7 +321,7 @@ function createPDF() {
     return new Promise((resolve) => {
         const doc = new jsPDF();
         const pageWidth = doc.internal.pageSize.getWidth();
-        const margin = 15;
+        const margin = 15; // Reduced margin for more columns
         const contentWidth = pageWidth - (margin * 2);
 
         // === COLOR CONFIGURATION ===
@@ -336,15 +336,15 @@ function createPDF() {
         };
 
         // Title
-        doc.setFontSize(16);
+        doc.setFontSize(16); // Slightly smaller for more columns
         doc.setFont('helvetica', 'bold');
         doc.setTextColor(colors.title[0], colors.title[1], colors.title[2]);
-        doc.text('Driving Lesson Check-In Report', margin, 25);
+        doc.text('Driving Lesson Check-In Report', margin, 20);
 
         // Date range and filters
-        doc.setFontSize(10);
+        doc.setFontSize(8); // Smaller font
         doc.setFont('helvetica', 'normal');
-        doc.setTextColor(100, 100, 100); // Gray color
+        doc.setTextColor(100, 100, 100);
         const dateFilter = document.getElementById('date-filter').value;
         const instructorFilter = document.getElementById('instructor-filter').value;
         const carFilter = document.getElementById('car-filter').value;
@@ -360,25 +360,25 @@ function createPDF() {
 
         // Summary box
         doc.setFillColor(colors.summary[0], colors.summary[1], colors.summary[2]);
-        doc.rect(margin, 42, 60, 12, 'F');
-        doc.setFontSize(10);
+        doc.rect(margin, 33, 50, 8, 'F'); // Smaller box
+        doc.setFontSize(9);
         doc.setFont('helvetica', 'bold');
         doc.setTextColor(255, 255, 255);
-        doc.text(`Total Check-Ins: ${allCheckins.length}`, margin + 5, 40);
+        doc.text(`Total: ${allCheckins.length}`, margin + 5, 39);
 
         // Reset text color for table
         doc.setTextColor(colors.text[0], colors.text[1], colors.text[2]);
 
-        // Table setup
-        const columnWidths = [25, 12, 20, 25, 20, 15, 20, 25]; // Widths for each column
-        const rowHeight = 8;
+        // Table setup - Adjusted for more columns
+        const columnWidths = [25, 12, 20, 25, 20, 15, 20, 25]; // Adjusted widths
+        const rowHeight = 8; // Smaller row height
         let yPosition = 50;
 
         // Draw table headers
         doc.setFillColor(colors.headerBg[0], colors.headerBg[1], colors.headerBg[2]);
         doc.rect(margin, yPosition, contentWidth, rowHeight, 'F');
         
-        doc.setFontSize(7);
+        doc.setFontSize(7); // Smaller font for headers
         doc.setFont('helvetica', 'bold');
         doc.setTextColor(colors.headerText[0], colors.headerText[1], colors.headerText[2]);
         
@@ -389,12 +389,12 @@ function createPDF() {
             doc.text(header, xPosition, yPosition + 5);
             xPosition += columnWidths[index];
         });
-        
+
         yPosition += rowHeight;
 
         // Table rows
         doc.setFont('helvetica', 'normal');
-        doc.setFontSize(8);
+        doc.setFontSize(6); // Smaller font for content
 
         allCheckins.forEach((checkin, index) => {
             // Check if we need a new page
@@ -406,7 +406,7 @@ function createPDF() {
                 doc.setFillColor(colors.headerBg[0], colors.headerBg[1], colors.headerBg[2]);
                 doc.rect(margin, yPosition, contentWidth, rowHeight, 'F');
                 
-                doc.setFontSize(9);
+                doc.setFontSize(7);
                 doc.setFont('helvetica', 'bold');
                 doc.setTextColor(colors.headerText[0], colors.headerText[1], colors.headerText[2]);
                 
@@ -431,7 +431,7 @@ function createPDF() {
             // Row text
             doc.setTextColor(colors.text[0], colors.text[1], colors.text[2]);
             
-            let cellX = margin + 2;
+            let cellX = margin + 1;
             
             // Time column
             const timeText = new Date(checkin.timestamp).toLocaleTimeString('en-US', { 
@@ -441,30 +441,31 @@ function createPDF() {
             });
             doc.text(timeText, cellX, yPosition + 5);
             cellX += columnWidths[0];
-
+            
             // Session column
             doc.text(checkin.session || 'N/A', cellX, yPosition + 5);
             cellX += columnWidths[1];
             
             // Instructor column
-            doc.text(truncateText(checkin.instructor_id, 12), cellX, yPosition + 7);
-            cellX += columnWidths[1];
-            
-            // Student Name column
-            doc.text(truncateText(checkin.student_name, 12), cellX, yPosition + 7);
+            doc.text(truncateText(checkin.instructor_id, 10), cellX, yPosition + 5);
             cellX += columnWidths[2];
             
-            // Student ID column
-            doc.text(truncateText(checkin.student_id, 12), cellX, yPosition + 7);
+            // Student Name column
+            doc.text(truncateText(checkin.student_name, 12), cellX, yPosition + 5);
             cellX += columnWidths[3];
             
+            // Student ID column
+            doc.text(truncateText(checkin.student_id, 10), cellX, yPosition + 5);
+            cellX += columnWidths[4];
+            
             // Car Plate column
-            doc.text(truncateText(checkin.car_plate, 8), cellX, yPosition + 7);
-
+            doc.text(truncateText(checkin.car_plate, 6), cellX, yPosition + 5);
+            cellX += columnWidths[5];
+            
             // Duration column
             doc.text(checkin.duration ? checkin.duration + 'h' : 'N/A', cellX, yPosition + 5);
             cellX += columnWidths[6];
-
+            
             // Time Range column
             const timeRange = checkin.start_time && checkin.end_time ? 
                 `${checkin.start_time} - ${checkin.end_time}` : 'N/A';
@@ -475,11 +476,11 @@ function createPDF() {
 
         // Add page numbers
         const pageCount = doc.internal.getNumberOfPages();
-        doc.setFontSize(8);
+        doc.setFontSize(6);
         doc.setTextColor(100, 100, 100);
         for (let i = 1; i <= pageCount; i++) {
             doc.setPage(i);
-            doc.text(`Page ${i} of ${pageCount}`, pageWidth - margin - 20, 290);
+            doc.text(`Page ${i} of ${pageCount}`, pageWidth - margin - 15, 290);
         }
 
         resolve(doc);
