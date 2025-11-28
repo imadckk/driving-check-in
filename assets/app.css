@@ -9,9 +9,8 @@
 .car-plate {
     width: 240px;
     height: 60px;
-    /* Changed background to Primary color for a sleek, modern screen/glass look */
-    background: var(--color-primary); 
-    border: 3px solid var(--color-neutral); /* Subtle border */
+    background: #000000;
+    border: 3px solid #666666;
     border-radius: 8px;
     display: flex;
     align-items: center;
@@ -59,15 +58,14 @@ input[type="radio"]:focus + .session-option {
     outline-offset: 2px;
 }
 
-/* 3D Extrude Effect for Car Plate */
+/* 3D Extrude Effect */
 .css-3d {
-    /* Updated shadows for a metallic/deep-set look with Primary color */
     box-shadow: 
         0 4px 8px rgba(0, 0, 0, 0.3),
         inset 0 1px 0 rgba(255, 255, 255, 0.2),
         inset 0 -1px 0 rgba(0, 0, 0, 0.8),
-        0 0 0 2px var(--color-primary), /* Inner border */
-        0 6px 0 2px #1e0954; /* Darker primary shade for depth */
+        0 0 0 2px #333333,
+        0 6px 0 2px #222222;
     transform: perspective(500px) rotateX(5deg);
     transition: all 0.3s ease;
 }
@@ -79,8 +77,7 @@ input[type="radio"]:focus + .session-option {
     left: -4px;
     right: -4px;
     bottom: -8px;
-    /* Updated gradient to complement the deep Primary color */
-    background: linear-gradient(135deg, #442a8a 0%, #1e0954 50%, #442a8a 100%); 
+    background: linear-gradient(135deg, #666666 0%, #333333 50%, #666666 100%);
     border-radius: 12px;
     z-index: -1;
     opacity: 0.9;
@@ -93,13 +90,12 @@ input[type="radio"]:focus + .session-option {
         0 6px 12px rgba(0, 0, 0, 0.4),
         inset 0 1px 0 rgba(255, 255, 255, 0.3),
         inset 0 -1px 0 rgba(0, 0, 0, 0.9),
-        0 0 0 2px var(--color-primary),
-        0 8px 0 2px #1e0954;
+        0 0 0 2px #333333,
+        0 8px 0 2px #222222;
 }
 
 .plate-text {
-    /* Using Secondary color for the text for high visibility */
-    color: var(--color-secondary); 
+    color: #ffffff;
     font-family: "Stack Sans Text", sans-serif;
     font-size: 32px;
     font-weight: 700;
@@ -111,7 +107,7 @@ input[type="radio"]:focus + .session-option {
 
 /* Empty plate state */
 .car-plate.empty .plate-text {
-    color: var(--color-neutral); /* Use the subtle neutral color */
+    color: #888888;
     font-style: italic;
     font-weight: normal;
 }
@@ -125,14 +121,14 @@ input[type="radio"]:focus + .session-option {
     right: 0;
     height: 30%;
     background: linear-gradient(135deg, 
-        rgba(255, 255, 255, 0.25) 0%, /* Increased shine for contrast */
-        rgba(255, 255, 255, 0.15) 50%, 
+        rgba(255, 255, 255, 0.15) 0%, 
+        rgba(255, 255, 255, 0.08) 50%, 
         rgba(255, 255, 255, 0) 100%);
     border-radius: 5px 5px 0 0;
     pointer-events: none;
 }
 
-/* Metallic border effect - updated to Primary */
+/* Metallic border effect */
 .car-plate::before {
     content: '';
     position: absolute;
@@ -141,17 +137,17 @@ input[type="radio"]:focus + .session-option {
     right: -6px;
     bottom: -10px;
     background: linear-gradient(45deg, 
-        var(--color-primary) 0%, 
-        var(--color-primary) 25%, 
-        var(--color-primary) 50%, 
-        var(--color-primary) 75%, 
-        var(--color-primary) 100%);
+        #000000 0%, 
+        #000000 25%, 
+        #000000 50%, 
+        #000000 75%, 
+        #000000 100%);
     border-radius: 14px;
     z-index: -2;
     opacity: 0.7;
 }
 
-/* Pulse animation for empty plate - updated to new colors */
+/* Pulse animation for empty plate */
 .car-plate.empty {
     animation: pulse-empty 2s infinite;
 }
@@ -162,15 +158,15 @@ input[type="radio"]:focus + .session-option {
             0 4px 8px rgba(0, 0, 0, 0.3),
             inset 0 1px 0 rgba(255, 255, 255, 0.2),
             inset 0 -1px 0 rgba(0, 0, 0, 0.8),
-            0 0 0 2px var(--color-primary),
-            0 6px 0 2px #1e0954;
+            0 0 0 2px #333333,
+            0 6px 0 2px #222222;
     }
     50% { 
         box-shadow: 
             0 4px 8px rgba(0, 0, 0, 0.3),
             inset 0 1px 0 rgba(255, 255, 255, 0.2),
             inset 0 -1px 0 rgba(0, 0, 0, 0.8),
-            0 0 0 2px #442a8a,
-            0 6px 0 2px #331e71;
+            0 0 0 2px #555555,
+            0 6px 0 2px #444444;
     }
 }
