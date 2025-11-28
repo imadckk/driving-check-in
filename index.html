@@ -10,58 +10,47 @@
     <link href="https://fonts.googleapis.com/css2?family=Stack+Sans+Text:wght@200..700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="assets/app.css">
 </head>
-<body class="bg-gray-50 min-h-screen">
+<body class="bg-[#C6C5CB] min-h-screen">
     <div class="container mx-auto px-4 py-8 max-w-md">
-        <!-- Header -->
         <div class="text-center mb-8">
-            <h1 class="text-2xl font-bold text-gray-800">Driving Lesson Check-In</h1>
-            <!-- History Link -->
+            <h1 class="text-2xl font-bold text-[#290C73]">Driving Lesson Check-In</h1>
             <div class="mt-4">
                 <button onclick="showHistoryModal()" 
-                        class="text-blue-600 hover:text-blue-800 text-sm font-medium">
+                        class="text-[#290C73] hover:text-[#1e0954] text-sm font-medium">
                     View Today's Check-In History
                 </button>
             </div>
         </div>
 
-        <!-- Check-in Form -->
         <div class="bg-white rounded-lg shadow-md p-6">
             <form id="checkin-form">
-                <!-- Car Plate Display -->
                 <div class="mb-6">
                     <label class="block text-gray-700 text-sm font-medium mb-3 text-center">Car Plate</label>
                     <div class="flex justify-center">
                         <div id="car-plate-display" class="relative">
-                            <!-- CSS-based Car Plate with 3D effect -->
                             <div id="css-plate" class="car-plate css-3d">
                                 <span id="plate-text" class="plate-text">- - - - -</span>
                             </div>
-                            <!-- Hidden input for form data -->
                             <input type="hidden" id="car-plate" name="car-plate">
                         </div>
                     </div>
                     
                 </div>
 
-                <!-- Replace the session section with this -->
                 <div class="mb-4">
                     <label class="block text-gray-700 text-sm font-medium mb-3">Session *</label>
                     <div class="flex items-center justify-center">
-                        <!-- Toggle Switch Container -->
-                        <div class="relative inline-flex items-center bg-gray-200 rounded-full p-1">
-                            <!-- KPP02 Option -->
+                        <div class="relative inline-flex items-center bg-[#C6C5CB] rounded-full p-1">
                             <input type="radio" name="session" value="KPP02" id="session-kpp02" class="sr-only" required>
                             <label for="session-kpp02" class="relative flex items-center justify-center px-6 py-2 text-sm font-medium rounded-full cursor-pointer transition-all duration-200 session-option">
                                 <span class="z-10">KPP02</span>
                             </label>
                             
-                            <!-- KPP03 Option -->
                             <input type="radio" name="session" value="KPP03" id="session-kpp03" class="sr-only">
                             <label for="session-kpp03" class="relative flex items-center justify-center px-6 py-2 text-sm font-medium rounded-full cursor-pointer transition-all duration-200 session-option">
                                 <span class="z-10">KPP03</span>
                             </label>
                             
-                            <!-- Sliding Background -->
                             <div class="absolute top-1 left-1 w-1/2 h-8 bg-white rounded-full shadow-md transition-transform duration-200 transform session-slider"></div>
                         </div>
                     </div>
@@ -70,7 +59,7 @@
                 <div class="mb-4">
                     <label class="block text-gray-700 text-sm font-medium mb-2">Duration *</label>
                     <select id="duration" name="duration" 
-                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#FACC15]" required>
                         <option value="">Select duration</option>
                         <option value="0.5">30 minutes</option>
                         <option value="1">1 hour</option>
@@ -85,10 +74,9 @@
                     </select>
                 </div>
                 
-                <!-- Total Time Display -->
-                <div class="mb-4 bg-blue-50 border border-blue-200 rounded-lg p-3">
+                <div class="mb-4 bg-[#FACC15]/20 border border-[#FACC15] rounded-lg p-3">
                     <label class="block text-gray-700 text-sm font-medium mb-1">Lesson Time</label>
-                    <div id="total-time-display" class="text-blue-700 font-medium text-center">
+                    <div id="total-time-display" class="text-[#290C73] font-medium text-center">
                         Select duration to see time range
                     </div>
                 </div>
@@ -97,7 +85,7 @@
                 <div class="mb-4">
                     <label class="block text-gray-700 text-sm font-medium mb-2">Agent Code *</label>
                     <input type="text" id="instructor-id" 
-                           class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                           class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#FACC15]"
                            placeholder="Enter your instructor ID"
                            required
                            oninput="this.value = this.value.toUpperCase()">
@@ -106,7 +94,7 @@
                 <div class="mb-4">
                     <label class="block text-gray-700 text-sm font-medium mb-2">Student Name *</label>
                     <input type="text" id="student-name" 
-                           class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                           class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#FACC15]"
                            placeholder="Enter student name"
                            required
                            oninput="this.value = this.value.toUpperCase()">
@@ -117,44 +105,42 @@
                         Student IC/Passport * <i>Cth: 080808120909</i>
                     </label>
                     <input type="text" id="student-id" 
-                           class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                           class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#FACC15]"
                            placeholder="Enter student ID"
                            required
                            oninput="this.value = this.value.toUpperCase()">
                 </div>
 
                 <button type="submit" 
-                        class="w-full bg-blue-600 text-white py-3 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium transition duration-200">
+                        class="w-full bg-[#FACC15] text-[#290C73] py-3 px-4 rounded-md hover:bg-[#ffde59] focus:outline-none focus:ring-2 focus:ring-[#290C73] font-medium transition duration-200">
                     Check In
                 </button>
             </form>
         </div>
 
-        <!-- Success Modal -->
         <div id="success-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
             <div class="bg-white rounded-lg p-6 mx-4 max-w-sm w-full">
                 <div class="text-center">
-                    <div class="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div class="w-12 h-12 bg-[#290C73]/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <svg class="w-6 h-6 text-[#290C73]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
                         </svg>
                     </div>
                     <h3 class="text-lg font-medium text-gray-900 mb-2">Check-In Successful!</h3>
                     <p class="text-gray-600 mb-4">The lesson has been recorded.</p>
                     <button onclick="closeSuccessModal()" 
-                            class="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700">
+                            class="w-full bg-[#290C73] text-white py-2 px-4 rounded-md hover:bg-[#442a8a]">
                         New Check-In
                     </button>
                 </div>
             </div>
         </div>
 
-        <!-- Duplicate Confirmation Modal -->
         <div id="duplicate-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
             <div class="bg-white rounded-lg p-6 mx-4 max-w-sm w-full">
                 <div class="text-center">
-                    <div class="w-12 h-12 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <svg class="w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div class="w-12 h-12 bg-[#FACC15]/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <svg class="w-6 h-6 text-[#290C73]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.35 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
                         </svg>
                     </div>
@@ -166,7 +152,7 @@
                             Cancel
                         </button>
                         <button onclick="confirmDuplicateCheckin()" 
-                                class="flex-1 bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700">
+                                class="flex-1 bg-[#290C73] text-white py-2 px-4 rounded-md hover:bg-[#442a8a]">
                             Proceed
                         </button>
                     </div>
@@ -174,19 +160,17 @@
             </div>
         </div>
 
-        <!-- History Modal -->
         <div id="history-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
             <div class="bg-white rounded-lg p-6 mx-4 max-w-md w-full max-h-96 overflow-hidden flex flex-col">
                 <div class="flex justify-between items-center mb-4">
                     <h3 class="text-lg font-medium text-gray-900">Today's Check-In History</h3>
-                    <button onclick="closeHistoryModal()" class="text-gray-400 hover:text-gray-600">
+                    <button onclick="closeHistoryModal()" class="text-[#290C73]/50 hover:text-[#290C73]">
                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                         </svg>
                     </button>
                 </div>
                 <div id="history-content" class="flex-1 overflow-y-auto">
-                    <!-- History cards will be loaded here -->
                     <div class="text-center py-8 text-gray-500">
                         Loading history...
                     </div>
