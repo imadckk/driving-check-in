@@ -5,6 +5,38 @@
     --color-neutral: #C6C5CB;
 }
 
+/* --- NEW STYLE: Extruded 3D Button Style --- */
+.extruded-button {
+    /* Primary color for the button face */
+    background-color: var(--color-primary) !important; 
+    color: #ffffff !important; /* White text for contrast */
+    border-radius: 9999px; /* Rounded-full equivalent */
+    position: relative;
+    /* Custom padding for a good pill shape */
+    padding-left: 24px;
+    padding-right: 24px;
+    padding-top: 12px;
+    padding-bottom: 12px;
+    
+    /* Extrusion effect: darker Primary shade for the depth */
+    box-shadow: 0 6px 0 0 #1e0954; 
+    transform: translateY(0);
+    transition: all 0.15s ease-out;
+}
+
+.extruded-button:hover {
+    /* Moves button up when hovered, hiding some of the shadow */
+    transform: translateY(-2px); 
+    box-shadow: 0 8px 0 0 #1e0954; 
+}
+
+.extruded-button:active {
+    /* Simulates pressing the button */
+    transform: translateY(4px); 
+    box-shadow: 0 2px 0 0 #1e0954; 
+}
+/* ------------------------------------------- */
+
 /* Car Plate Styles with 3D Effect */
 .car-plate {
     width: 240px;
