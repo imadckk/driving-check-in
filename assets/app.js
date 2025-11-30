@@ -20,6 +20,164 @@ document.addEventListener('DOMContentLoaded', function() {
     updatePendingCount();
 });
 
+// Three.js 3D Logo initialization
+function init3DLogo() {
+    // Check if Three.js is available
+    if (typeof THREE === 'undefined') {
+        console.error('Three.js not loaded');
+        document.getElementById('fallback-logo').style.display = 'flex';
+        return;
+    }
+
+    const container = document.getElementById("logo-3d");
+    if (!container) {
+        console.error('Logo container not found');
+        return;
+    }
+
+    try {
+        // Scene setup
+        const scene = new THREE.Scene();
+        scene.background = null; // Transparent background
+
+        // Renderer
+        const renderer = new THREE.WebGLRenderer({ 
+            antialias: true, 
+            alpha: true 
+        });
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+        renderer.setSize(container.clientWidth, container.clientHeight);
+        renderer.outputColorSpace = THREE.SRGBColorSpace;
+        renderer.domElement.style.borderRadius = '8px'; // Match your design
+        container.appendChild(renderer.domElement);
+
+        // Camera setup
+        const camera = new THREE.PerspectiveCamera(
+            35, // Slightly wider angle for better view
+            container.clientWidth / container.clientHeight,
+            0.1,
+            100
+        );
+        camera.position.set(0, 0, 4);
+        camera.lookAt(0, 0, 0);
+
+        // Enhanced lighting
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+        scene.add(ambientLight);
+
+        const directionalLight1 = new THREE.DirectionalLight(0xffffff, 0.8);
+        directionalLight1.position.set(2, 3, 4);
+        scene.add(directionalLight1);
+
+        const directionalLight2 = new THREE.DirectionalLight(0xffffff, 0.4);
+        directionalLight2.position.set(-2, -1, -3);
+        scene.add(directionalLight2);
+
+        // Load your logo model
+        let logo = null;
+        const loader = new THREE.GLTFLoader();
+        
+        // Update this path to your actual logo location
+        const LOGO_PATH = 'assets/logo.glb';
+        
+        loader.load(
+            LOGO_PATH,
+            (gltf) => {
+                logo = gltf.scene;
+
+                // Normalize size and center
+                const box = new THREE.Box3().setFromObject(logo);
+                const size = new THREE.Vector3();
+                box.getSize(size);
+                const maxDim = Math.max(size.x, size.y, size.z);
+                const scale = 2.0 / (maxDim || 1);
+                logo.scale.setScalar(scale);
+
+                // Center the model
+                const center = new THREE.Vector3();
+                box.getCenter(center);
+                logo.position.sub(center);
+
+                // Initial rotation for better presentation
+                logo.rotation.x = 0.1;
+                logo.rotation.y = 0.2;
+
+                scene.add(logo);
+            },
+            undefined,
+            (error) => {
+                console.error('Error loading 3D logo:', error);
+                document.getElementById('fallback-logo').style.display = 'flex';
+            }
+        );
+
+        // Handle resize
+        function handleResize() {
+            const width = container.clientWidth;
+            const height = container.clientHeight;
+            
+            if (width === 0 || height === 0) return;
+            
+            renderer.setSize(width, height);
+            camera.aspect = width / height;
+            camera.updateProjectionMatrix();
+        }
+
+        const resizeObserver = new ResizeObserver(handleResize);
+        resizeObserver.observe(container);
+
+        // Animation
+        let animationId;
+        function animate() {
+            animationId = requestAnimationFrame(animate);
+            
+            if (logo) {
+                // Smooth rotation
+                logo.rotation.y += 0.008; // Slower rotation for elegance
+            }
+            
+            renderer.render(scene, camera);
+        }
+        animate();
+
+        // Cleanup function
+        window.cleanupLogo = () => {
+            if (animationId) {
+                cancelAnimationFrame(animationId);
+            }
+            resizeObserver.disconnect();
+            renderer.dispose();
+        };
+
+    } catch (error) {
+        console.error('Error initializing 3D logo:', error);
+        document.getElementById('fallback-logo').style.display = 'flex';
+    }
+}
+
+// Initialize when DOM is loaded
+document.addEventListener('DOMContentLoaded', function() {
+    // Your existing initialization code
+    const urlParams = new URLSearchParams(window.location.search);
+    const carPlate = urlParams.get('car');
+    
+    if (carPlate) {
+        setCarPlate(carPlate);
+    }
+    initializeSessionToggle();
+    updatePendingCount();
+
+    // Initialize 3D logo
+    init3DLogo();
+});
+
+// Add cleanup when leaving the page
+window.addEventListener('beforeunload', () => {
+    if (window.cleanupLogo) {
+        window.cleanupLogo();
+    }
+});
+
 // Function to set car plate display
 function setCarPlate(plate) {
     const plateInput = document.getElementById('car-plate');
