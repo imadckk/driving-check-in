@@ -17,172 +17,24 @@ document.addEventListener('DOMContentLoaded', function() {
         setCarPlate(carPlate);
     }
     initializeSessionToggle();
-    initializeDuplicateCheck(); // NEW: Initialize real-time duplicate checking
-    initializeFormSubmitHandling(); // NEW: Initialize loading states
+    initializeDuplicateCheck();
+    initializeFormSubmitHandling();
 
     // Load pending check-ins count
     updatePendingCount();
-    
-    // Initialize 3D logo
-    init3DLogo();
-});
-
-// Three.js 3D Logo initialization
-function init3DLogo() {
-    // Check if Three.js is available
-    if (typeof THREE === 'undefined') {
-        console.error('Three.js not loaded');
-        document.getElementById('fallback-logo').style.display = 'flex';
-        return;
-    }
-
-    const container = document.getElementById("logo-3d");
-    if (!container) {
-        console.error('Logo container not found');
-        return;
-    }
-
-    try {
-        // Scene setup
-        const scene = new THREE.Scene();
-        scene.background = null; // Transparent background
-
-        // Renderer
-        const renderer = new THREE.WebGLRenderer({ 
-            antialias: true, 
-            alpha: true 
-        });
-        renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
-        renderer.setSize(container.clientWidth, container.clientHeight);
-        renderer.outputColorSpace = THREE.SRGBColorSpace;
-        renderer.domElement.style.borderRadius = '8px'; // Match your design
-        container.appendChild(renderer.domElement);
-
-        // Camera setup
-        const camera = new THREE.PerspectiveCamera(
-            35, // Slightly wider angle for better view
-            container.clientWidth / container.clientHeight,
-            0.1,
-            100
-        );
-        camera.position.set(0, 0, 4);
-        camera.lookAt(0, 0, 0);
-
-        // Enhanced lighting
-        const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
-        scene.add(ambientLight);
-
-        const directionalLight1 = new THREE.DirectionalLight(0xffffff, 0.8);
-        directionalLight1.position.set(2, 3, 4);
-        scene.add(directionalLight1);
-
-        const directionalLight2 = new THREE.DirectionalLight(0xffffff, 0.4);
-        directionalLight2.position.set(-2, -1, -3);
-        scene.add(directionalLight2);
-
-        // Load your logo model
-        let logo = null;
-        const loader = new THREE.GLTFLoader();
-        
-        // Update this path to your actual logo location
-        const LOGO_PATH = 'assets/logo.glb';
-        
-        loader.load(
-            LOGO_PATH,
-            (gltf) => {
-                logo = gltf.scene;
-
-                // Normalize size and center
-                const box = new THREE.Box3().setFromObject(logo);
-                const size = new THREE.Vector3();
-                box.getSize(size);
-                const maxDim = Math.max(size.x, size.y, size.z);
-                const scale = 2.0 / (maxDim || 1);
-                logo.scale.setScalar(scale);
-
-                // Center the model
-                const center = new THREE.Vector3();
-                box.getCenter(center);
-                logo.position.sub(center);
-
-                // Initial rotation for better presentation
-                logo.rotation.x = 0.1;
-                logo.rotation.y = 0.2;
-
-                scene.add(logo);
-            },
-            undefined,
-            (error) => {
-                console.error('Error loading 3D logo:', error);
-                document.getElementById('fallback-logo').style.display = 'flex';
-            }
-        );
-
-        // Handle resize
-        function handleResize() {
-            const width = container.clientWidth;
-            const height = container.clientHeight;
-            
-            if (width === 0 || height === 0) return;
-            
-            renderer.setSize(width, height);
-            camera.aspect = width / height;
-            camera.updateProjectionMatrix();
-        }
-
-        const resizeObserver = new ResizeObserver(handleResize);
-        resizeObserver.observe(container);
-
-        // Animation
-        let animationId;
-        function animate() {
-            animationId = requestAnimationFrame(animate);
-            
-            if (logo) {
-                // Smooth rotation
-                logo.rotation.y += 0.008; // Slower rotation for elegance
-            }
-            
-            renderer.render(scene, camera);
-        }
-        animate();
-
-        // Cleanup function
-        window.cleanupLogo = () => {
-            if (animationId) {
-                cancelAnimationFrame(animationId);
-            }
-            resizeObserver.disconnect();
-            renderer.dispose();
-        };
-
-    } catch (error) {
-        console.error('Error initializing 3D logo:', error);
-        document.getElementById('fallback-logo').style.display = 'flex';
-    }
-}
-
-// Add cleanup when leaving the page
-window.addEventListener('beforeunload', () => {
-    if (window.cleanupLogo) {
-        window.cleanupLogo();
-    }
 });
 
 // Function to set car plate display
 function setCarPlate(plate) {
     const plateInput = document.getElementById('car-plate');
-    const plateText = document.getElementById('plate-text');
-    const plateContainer = document.getElementById('css-plate');
+    const headerPlateText = document.getElementById('header-plate-text');
     
-    plateInput.value = plate;
+    if (plateInput) {
+        plateInput.value = plate;
+    }
     
-    if (plate && plate.trim() !== '') {
-        plateText.textContent = plate;
-        plateContainer.classList.remove('empty');
-    } else {
-        plateText.textContent = '- - - - -';
-        plateContainer.classList.add('empty');
+    if (headerPlateText) {
+        headerPlateText.textContent = plate || '---';
     }
 }
 
@@ -207,6 +59,7 @@ function calculateEndTime(startTime, durationHours) {
 function updateTotalTimeDisplay() {
     const durationSelect = document.getElementById('duration');
     const totalTimeDisplay = document.getElementById('total-time-display');
+    const timeDisplayContainer = document.getElementById('time-display-container');
     
     if (durationSelect.value) {
         const now = new Date();
@@ -216,20 +69,30 @@ function updateTotalTimeDisplay() {
         const startTimeFormatted = formatTimeAMPM(now);
         const endTimeFormatted = formatTimeAMPM(endTime);
         
-        totalTimeDisplay.textContent = `${startTimeFormatted} - ${endTimeFormatted}`;
+        if (totalTimeDisplay) {
+            totalTimeDisplay.textContent = `${startTimeFormatted} - ${endTimeFormatted}`;
+        }
+        
+        if (timeDisplayContainer) {
+            timeDisplayContainer.classList.remove('hidden');
+        }
     } else {
-        totalTimeDisplay.textContent = 'Select duration to see time range';
+        if (totalTimeDisplay) {
+            totalTimeDisplay.textContent = 'Select duration to see time range';
+        }
+        
+        if (timeDisplayContainer) {
+            timeDisplayContainer.classList.add('hidden');
+        }
     }
 }
 
-// Add after the configuration section
+// Initialize session toggle
 function initializeSessionToggle() {
     const sessionRadios = document.querySelectorAll('input[name="session"]');
-    const sessionSlider = document.querySelector('.session-slider');
     
     sessionRadios.forEach(radio => {
         radio.addEventListener('change', function() {
-            // The CSS handles the visual movement through the transform property
             console.log('Session selected:', this.value);
         });
         
@@ -247,22 +110,27 @@ function initializeSessionToggle() {
         });
     });
     
-    // Set initial state - DEFAULT TO KPP02
+    // Set default to KPP02
     if (!document.querySelector('input[name="session"]:checked')) {
-        document.getElementById('session-kpp02').checked = true;
+        const kpp02 = document.getElementById('session-kpp02');
+        if (kpp02) {
+            kpp02.checked = true;
+        }
     }
 }
 
-// NEW: Initialize real-time duplicate checking
+// Initialize real-time duplicate checking
 function initializeDuplicateCheck() {
     const studentIdInput = document.getElementById('student-id');
+    if (!studentIdInput) return;
+    
     const studentIdContainer = studentIdInput.parentElement;
     
     // Create warning element if it doesn't exist
     if (!document.getElementById('duplicate-warning')) {
         const warningDiv = document.createElement('div');
         warningDiv.id = 'duplicate-warning';
-        warningDiv.className = 'hidden mt-2 p-3 bg-yellow-50 border border-yellow-300 rounded-md';
+        warningDiv.className = 'hidden';
         studentIdContainer.appendChild(warningDiv);
     }
     
@@ -287,12 +155,13 @@ function initializeDuplicateCheck() {
     });
 }
 
-// NEW: Check for duplicate and display warning
+// Check for duplicate and display warning
 async function checkAndDisplayDuplicate(studentId) {
     const warningDiv = document.getElementById('duplicate-warning');
+    if (!warningDiv) return;
     
     // Show loading state
-    warningDiv.className = 'mt-2 p-3 bg-gray-50 border border-gray-300 rounded-md';
+    warningDiv.className = 'warning-banner';
     warningDiv.innerHTML = '<span class="text-sm text-gray-600">Checking for duplicates...</span>';
     
     try {
@@ -301,19 +170,19 @@ async function checkAndDisplayDuplicate(studentId) {
         if (duplicateInfo) {
             currentDuplicateWarning = duplicateInfo;
             // Show warning with details
-            warningDiv.className = 'mt-2 p-3 bg-yellow-50 border border-yellow-300 rounded-md';
+            warningDiv.className = 'warning-banner';
             warningDiv.innerHTML = `
                 <div class="flex items-start">
-                    <svg class="w-5 h-5 text-yellow-600 mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                    <svg class="w-5 h-5 text-amber-600 mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                         <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
                     </svg>
-                    <div>
-                        <p class="text-sm font-medium text-yellow-800">Duplicate Check-In Detected</p>
-                        <p class="text-xs text-yellow-700 mt-1">
+                    <div class="flex-1">
+                        <p class="text-sm font-semibold text-amber-900">Duplicate Check-In Detected</p>
+                        <p class="text-xs text-amber-800 mt-1">
                             ${duplicateInfo.student_name} already checked in today at ${duplicateInfo.start_time} 
                             (${duplicateInfo.session}, ${duplicateInfo.duration} hours)
                         </p>
-                        <p class="text-xs text-yellow-600 mt-1">You can still proceed if needed.</p>
+                        <p class="text-xs text-amber-700 mt-1">You can still proceed if needed.</p>
                     </div>
                 </div>
             `;
@@ -327,20 +196,22 @@ async function checkAndDisplayDuplicate(studentId) {
     }
 }
 
-// NEW: Hide duplicate warning
+// Hide duplicate warning
 function hideDuplicateWarning() {
     const warningDiv = document.getElementById('duplicate-warning');
     if (warningDiv) {
-        warningDiv.className = 'hidden mt-2 p-3 bg-yellow-50 border border-yellow-300 rounded-md';
+        warningDiv.className = 'hidden';
         warningDiv.innerHTML = '';
     }
     currentDuplicateWarning = null;
 }
 
-// NEW: Initialize form submit handling with loading states
+// Initialize form submit handling with loading states
 function initializeFormSubmitHandling() {
     const form = document.getElementById('checkin-form');
-    const submitButton = form.querySelector('button[type="submit"]');
+    const submitButton = document.getElementById('submit-btn') || form.querySelector('button[type="submit"]');
+    
+    if (!form || !submitButton) return;
     
     form.addEventListener('submit', async function(e) {
         e.preventDefault();
@@ -349,7 +220,7 @@ function initializeFormSubmitHandling() {
         submitButton.disabled = true;
         const originalButtonText = submitButton.innerHTML;
         submitButton.innerHTML = `
-            <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-current inline" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <svg class="spinner w-5 h-5 text-current inline mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                 <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
             </svg>
@@ -374,7 +245,7 @@ function initializeFormSubmitHandling() {
             };
 
             // Validate car plate
-            if (!formData.car_plate || formData.car_plate === '- - - - -') {
+            if (!formData.car_plate || formData.car_plate === '- - - - -' || formData.car_plate === '---') {
                 showErrorMessage('Please scan the car QR code first');
                 return;
             }
@@ -405,47 +276,45 @@ function initializeFormSubmitHandling() {
     });
 }
 
-// NEW: Show error message (better than alert)
+// Show error message
 function showErrorMessage(message) {
-    // Create error modal if it doesn't exist
+    // Check if using mobile modal style or desktop alert
     let errorModal = document.getElementById('error-modal');
-    if (!errorModal) {
-        errorModal = document.createElement('div');
-        errorModal.id = 'error-modal';
-        errorModal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50';
-        errorModal.innerHTML = `
-            <div class="bg-white rounded-lg p-6 mx-4 max-w-sm w-full">
-                <div class="text-center">
-                    <div class="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                        </svg>
-                    </div>
-                    <h3 class="text-lg font-medium text-gray-900 mb-2">Error</h3>
-                    <p id="error-message" class="text-gray-600 mb-4"></p>
-                    <button onclick="closeErrorModal()" 
-                            class="w-full bg-red-600 text-white py-2 px-4 rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 font-medium transition duration-200">
-                        OK
-                    </button>
-                </div>
-            </div>
-        `;
-        document.body.appendChild(errorModal);
-    }
     
-    document.getElementById('error-message').textContent = message;
-    errorModal.classList.remove('hidden');
+    if (errorModal) {
+        // Mobile style - use modal
+        const messageEl = document.getElementById('error-message');
+        if (messageEl) {
+            messageEl.textContent = message;
+        }
+        errorModal.classList.remove('hidden');
+        
+        // If using bottom sheet style, add active class
+        const content = errorModal.querySelector('.modal-mobile');
+        if (content) {
+            setTimeout(() => content.classList.add('active'), 10);
+        }
+    } else {
+        // Fallback to alert if modal doesn't exist
+        alert(message);
+    }
 }
 
-// NEW: Close error modal
+// Close error modal
 function closeErrorModal() {
     const errorModal = document.getElementById('error-modal');
     if (errorModal) {
-        errorModal.classList.add('hidden');
+        const content = errorModal.querySelector('.modal-mobile');
+        if (content) {
+            content.classList.remove('active');
+            setTimeout(() => errorModal.classList.add('hidden'), 300);
+        } else {
+            errorModal.classList.add('hidden');
+        }
     }
 }
 
-// Check if student already has a check-in today (original version)
+// Check if student already has a check-in today (simple boolean)
 async function checkDuplicateCheckin(studentId) {
     try {
         const today = new Date();
@@ -473,7 +342,7 @@ async function checkDuplicateCheckin(studentId) {
     }
 }
 
-// NEW: Check for duplicate with full details for real-time warning
+// Check for duplicate with full details for real-time warning
 async function checkDuplicateCheckinWithDetails(studentId) {
     try {
         const today = new Date();
@@ -544,7 +413,7 @@ async function getTodayCheckins() {
         const currentCarPlate = document.getElementById('car-plate').value;
         
         // If no car plate is set, return empty
-        if (!currentCarPlate || currentCarPlate === '- - - - -') {
+        if (!currentCarPlate || currentCarPlate === '- - - - -' || currentCarPlate === '---') {
             showErrorMessage('No car plate detected. Please scan the QR code.');
             return [];
         }
@@ -580,16 +449,14 @@ async function showHistoryModal() {
     const content = document.getElementById('history-content');
     const currentCarPlate = document.getElementById('car-plate').value;
     
+    if (!modal || !content) return;
+    
     // Check if car plate is set
-    if (!currentCarPlate || currentCarPlate === '- - - - -') {
+    if (!currentCarPlate || currentCarPlate === '- - - - -' || currentCarPlate === '---') {
         content.innerHTML = '<div class="text-center py-8 text-gray-500">Please set a car plate first to view history.</div>';
         modal.classList.remove('hidden');
         return;
     }
-    
-    // Update modal title to show current car plate
-    const modalTitle = modal.querySelector('h3');
-    modalTitle.textContent = `Today's History - ${currentCarPlate}`;
     
     // Show loading state
     content.innerHTML = '<div class="text-center py-8 text-gray-500">Loading history...</div>';
@@ -602,14 +469,14 @@ async function showHistoryModal() {
             content.innerHTML = `
                 <div class="text-center py-8 text-gray-500">
                     No check-ins found for today for car plate:<br>
-                    <span class="font-medium">${currentCarPlate}</span>
+                    <span class="font-semibold mt-2 block">${currentCarPlate}</span>
                 </div>`;
             return;
         }
         
         let html = `
-            <div class="text-sm text-gray-600 mb-3 text-center">
-                Showing history for: <span class="font-medium">${currentCarPlate}</span>
+            <div class="text-sm text-gray-600 mb-4 text-center bg-blue-50 p-3 rounded-lg">
+                Showing history for: <span class="font-semibold text-blue-900">${currentCarPlate}</span>
             </div>
             <div class="space-y-3">
         `;
@@ -617,20 +484,20 @@ async function showHistoryModal() {
         checkins.forEach(checkin => {
             const time = new Date(checkin.timestamp).toLocaleTimeString();
             html += `
-                <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                <div class="bg-white rounded-lg p-4 border border-gray-200 shadow-sm">
                     <div class="flex justify-between items-start mb-2">
                         <div>
-                            <h4 class="font-medium text-gray-900">${checkin.student_name}</h4>
+                            <h4 class="font-semibold text-gray-900">${checkin.student_name}</h4>
                             <p class="text-sm text-gray-600">${checkin.student_id}</p>
                         </div>
                         <div class="text-right">
-                            <span class="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">${checkin.session}</span>
+                            <span class="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded font-medium">${checkin.session}</span>
                             <div class="text-xs text-gray-500 mt-1">${checkin.start_time} - ${checkin.end_time}</div>
                         </div>
                     </div>
-                    <div class="flex justify-between text-sm">
-                        <span class="text-gray-700">Instructor: ${checkin.instructor_id}</span>
-                        <span class="text-gray-700">Duration: ${checkin.duration} hours</span>
+                    <div class="flex justify-between text-sm text-gray-700">
+                        <span>Instructor: <span class="font-medium">${checkin.instructor_id}</span></span>
+                        <span>Duration: <span class="font-medium">${checkin.duration}h</span></span>
                     </div>
                 </div>
             `;
@@ -645,17 +512,38 @@ async function showHistoryModal() {
 
 // Close history modal
 function closeHistoryModal() {
-    document.getElementById('history-modal').classList.add('hidden');
+    const modal = document.getElementById('history-modal');
+    if (modal) {
+        modal.classList.add('hidden');
+    }
 }
 
 // Show duplicate confirmation modal
 function showDuplicateModal() {
-    document.getElementById('duplicate-modal').classList.remove('hidden');
+    const modal = document.getElementById('duplicate-modal');
+    if (modal) {
+        modal.classList.remove('hidden');
+        
+        // If using bottom sheet style, add active class
+        const content = modal.querySelector('.modal-mobile');
+        if (content) {
+            setTimeout(() => content.classList.add('active'), 10);
+        }
+    }
 }
 
 // Close duplicate modal
 function closeDuplicateModal() {
-    document.getElementById('duplicate-modal').classList.add('hidden');
+    const modal = document.getElementById('duplicate-modal');
+    if (modal) {
+        const content = modal.querySelector('.modal-mobile');
+        if (content) {
+            content.classList.remove('active');
+            setTimeout(() => modal.classList.add('hidden'), 300);
+        } else {
+            modal.classList.add('hidden');
+        }
+    }
     pendingFormData = null;
 }
 
@@ -663,35 +551,42 @@ function closeDuplicateModal() {
 async function confirmDuplicateCheckin() {
     if (pendingFormData) {
         // Disable the button to prevent double-clicks
-        const confirmButton = document.querySelector('#duplicate-modal button[onclick="confirmDuplicateCheckin()"]');
-        const originalText = confirmButton.innerHTML;
-        confirmButton.disabled = true;
-        confirmButton.innerHTML = 'Processing...';
-        
-        try {
+        const confirmButton = document.querySelector('#duplicate-modal button[onclick*="confirmDuplicateCheckin"]');
+        if (confirmButton) {
+            const originalText = confirmButton.innerHTML;
+            confirmButton.disabled = true;
+            confirmButton.innerHTML = 'Processing...';
+            
+            try {
+                await processCheckin(pendingFormData);
+                closeDuplicateModal();
+            } finally {
+                confirmButton.disabled = false;
+                confirmButton.innerHTML = originalText;
+            }
+        } else {
             await processCheckin(pendingFormData);
             closeDuplicateModal();
-        } finally {
-            confirmButton.disabled = false;
-            confirmButton.innerHTML = originalText;
         }
     }
 }
 
-function showManualEntry() {
-    const plate = prompt('Enter Car Plate Number:');
-    if (plate) {
-        setCarPlate(plate);
-    }
-}
-
 function showSuccessModal() {
-    document.getElementById('success-modal').classList.remove('hidden');
-    
-    // Auto-dismiss after 2 seconds
-    setTimeout(() => {
-        closeSuccessModal();
-    }, 2000);
+    const modal = document.getElementById('success-modal');
+    if (modal) {
+        modal.classList.remove('hidden');
+        
+        // If using bottom sheet style, add active class
+        const content = modal.querySelector('.modal-mobile');
+        if (content) {
+            setTimeout(() => content.classList.add('active'), 10);
+        }
+        
+        // Auto-dismiss after 2 seconds
+        setTimeout(() => {
+            closeSuccessModal();
+        }, 2000);
+    }
 }
 
 // Add event listener for duration change
@@ -703,27 +598,59 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 function closeSuccessModal() {
-    document.getElementById('success-modal').classList.add('hidden');
-    document.getElementById('checkin-form').reset();
+    const modal = document.getElementById('success-modal');
+    if (modal) {
+        const content = modal.querySelector('.modal-mobile');
+        if (content) {
+            content.classList.remove('active');
+            setTimeout(() => {
+                modal.classList.add('hidden');
+                resetForm();
+            }, 300);
+        } else {
+            modal.classList.add('hidden');
+            resetForm();
+        }
+    }
+}
+
+function resetForm() {
+    const form = document.getElementById('checkin-form');
+    if (form) {
+        form.reset();
+    }
     
     // Get current car plate before clearing
     const currentCarPlate = document.getElementById('car-plate').value;
     
-    // Keep the car plate in URL parameters instead of clearing them
-    if (currentCarPlate && currentCarPlate !== '- - - - -') {
+    // Keep the car plate in URL parameters
+    if (currentCarPlate && currentCarPlate !== '- - - - -' && currentCarPlate !== '---') {
         const newUrl = new URL(window.location);
         newUrl.searchParams.set('car', currentCarPlate);
         window.history.replaceState({}, '', newUrl);
+        
+        // Restore the car plate value
+        setCarPlate(currentCarPlate);
     }
     
     // Reset session to default
-    document.getElementById('session-kpp02').checked = true;
+    const kpp02 = document.getElementById('session-kpp02');
+    if (kpp02) {
+        kpp02.checked = true;
+    }
     
-    // Clear form fields except car plate
-    document.getElementById('instructor-id').value = '';
-    document.getElementById('student-name').value = '';
-    document.getElementById('student-id').value = '';
-    document.getElementById('total-time-display').textContent = 'Select duration to see time range';
+    // Clear form fields
+    const instructorId = document.getElementById('instructor-id');
+    const studentName = document.getElementById('student-name');
+    const studentId = document.getElementById('student-id');
+    const totalTimeDisplay = document.getElementById('total-time-display');
+    const timeDisplayContainer = document.getElementById('time-display-container');
+    
+    if (instructorId) instructorId.value = '';
+    if (studentName) studentName.value = '';
+    if (studentId) studentId.value = '';
+    if (totalTimeDisplay) totalTimeDisplay.textContent = 'Select duration to see time range';
+    if (timeDisplayContainer) timeDisplayContainer.classList.add('hidden');
     
     // Hide any duplicate warnings
     hideDuplicateWarning();
@@ -736,12 +663,8 @@ function updatePendingCount() {
     const pending = pendingCheckins.length;
     if (pending > 0) {
         console.log(`${pending} check-ins pending sync`);
+        // TODO: Add visual indicator for pending syncs
     }
-}
-
-// Format local date and time for display
-function formatLocalDateTime(date) {
-    return date.toLocaleString();
 }
 
 // Sync pending check-ins when coming online
