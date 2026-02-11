@@ -2,204 +2,522 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Driving Instructor Check-In</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.min.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#290C73">
+    <title>LITAR Check-In</title>
+    
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Stack+Sans+Text:wght@200..700&display=swap" rel="stylesheet">
-
-    <link rel="stylesheet" href="assets/app.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        * {
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        
+        /* Mobile-optimized safe area support */
+        .safe-top {
+            padding-top: env(safe-area-inset-top);
+        }
+        
+        .safe-bottom {
+            padding-bottom: env(safe-area-inset-bottom);
+        }
+        
+        /* Compact car plate for mobile */
+        .car-plate-mobile {
+            background: #1a1a1a;
+            border: 2px solid #404040;
+            border-radius: 6px;
+            padding: 8px 16px;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+        }
+        
+        .car-plate-mobile .plate-number {
+            font-family: 'Inter', monospace;
+            font-size: 18px;
+            font-weight: 700;
+            letter-spacing: 1px;
+            color: #ffffff;
+            text-transform: uppercase;
+        }
+        
+        .car-plate-mobile .plate-icon {
+            width: 20px;
+            height: 20px;
+            color: #FACC15;
+        }
+        
+        /* Large touch targets for session toggle */
+        .session-toggle-mobile {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            padding: 4px;
+            background: #e5e7eb;
+            border-radius: 12px;
+        }
+        
+        .session-toggle-mobile label {
+            padding: 14px 20px;
+            text-align: center;
+            font-size: 16px;
+            font-weight: 600;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            color: #6b7280;
+            background: transparent;
+            min-height: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .session-toggle-mobile input:checked + label {
+            background: #290C73;
+            color: #ffffff;
+            box-shadow: 0 2px 4px rgba(41, 12, 115, 0.2);
+        }
+        
+        /* Mobile-optimized button */
+        .btn-primary-mobile {
+            background: #FACC15;
+            color: #290C73;
+            font-size: 17px;
+            font-weight: 600;
+            padding: 16px 24px;
+            border-radius: 12px;
+            border: none;
+            width: 100%;
+            min-height: 56px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            box-shadow: 0 4px 0 0 #d4a000;
+            position: relative;
+            transform: translateY(0);
+        }
+        
+        .btn-primary-mobile:active {
+            transform: translateY(3px);
+            box-shadow: 0 1px 0 0 #d4a000;
+        }
+        
+        .btn-primary-mobile:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        
+        /* Form inputs optimized for mobile */
+        .input-mobile {
+            font-size: 16px; /* Prevents iOS zoom on focus */
+            padding: 14px 16px;
+            border: 2px solid #e5e7eb;
+            border-radius: 10px;
+            width: 100%;
+            transition: all 0.2s ease;
+            background: #ffffff;
+        }
+        
+        .input-mobile:focus {
+            outline: none;
+            border-color: #FACC15;
+            box-shadow: 0 0 0 3px rgba(250, 204, 21, 0.1);
+        }
+        
+        select.input-mobile {
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23290C73'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 12px center;
+            background-size: 20px;
+            padding-right: 40px;
+        }
+        
+        /* Label styling */
+        .label-mobile {
+            font-size: 15px;
+            font-weight: 600;
+            color: #1f2937;
+            margin-bottom: 8px;
+            display: block;
+        }
+        
+        /* Duplicate warning banner */
+        .warning-banner {
+            background: #fef3c7;
+            border-left: 4px solid #f59e0b;
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-top: 8px;
+            animation: slideDown 0.3s ease;
+        }
+        
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        /* Modal backdrop */
+        .modal-backdrop {
+            backdrop-filter: blur(4px);
+            -webkit-backdrop-filter: blur(4px);
+        }
+        
+        /* Bottom sheet style modals for mobile */
+        .modal-mobile {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: white;
+            border-radius: 20px 20px 0 0;
+            padding: 24px;
+            padding-bottom: calc(24px + env(safe-area-inset-bottom));
+            transform: translateY(100%);
+            transition: transform 0.3s ease;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        
+        .modal-mobile.active {
+            transform: translateY(0);
+        }
+        
+        /* Spinner animation */
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .spinner {
+            animation: spin 1s linear infinite;
+        }
+        
+        /* Time display badge */
+        .time-badge {
+            background: linear-gradient(135deg, #FACC15 0%, #fbbf24 100%);
+            color: #292524;
+            padding: 12px 16px;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 15px;
+            text-align: center;
+        }
+    </style>
 </head>
-<body class="bg-[#fef9c3] min-h-screen">
-    <div class="container mx-auto px-4 py-8 max-w-md">
-        <!-- Header Section with Logo and Title Side by Side -->
-        <div class="flex items-center justify-between mb-8">
-                <!-- 3D Logo Container -->
-                <div class="flex-shrink-0 mr-4">
-                    <div id="logo-3d" class="w-20 h-20 md:w-24 md:h-24 relative">
-                        <!-- Fallback logo (hidden by default) -->
-                        <div id="fallback-logo" class="w-full h-full bg-[#290C73] rounded-lg flex items-center justify-center hidden">
-                            <span class="text-white font-bold text-xs text-center">DRIVING<br>SCHOOL</span>
-                        </div>
-                    </div>
+<body class="bg-gray-50 min-h-screen safe-top safe-bottom">
+    
+    <!-- Header: Compact and mobile-optimized -->
+    <header class="bg-[#290C73] text-white px-4 py-3 sticky top-0 z-40 shadow-lg">
+        <div class="flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <!-- Logo (replace with your actual logo) -->
+                <div class="w-10 h-10 bg-white/10 rounded-lg flex items-center justify-center flex-shrink-0 backdrop-blur-sm">
+                    <img src="assets/logo.png" alt="LITAR" class="w-8 h-8 object-contain" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                    <!-- Fallback if logo doesn't load -->
+                    <span class="text-xs font-bold hidden">L</span>
                 </div>
                 
-                <!-- Title and History Link -->
-                <div class="flex-1 flex flex-col justify-center items-start">
-                    <h1 class="mb-4 text-3xl text-[#171717] font-bold tracking-tight text-heading md:text-4xl lg:text-5xl">LITAR Check-IN</h1>
-                    <a href="javascript:void(0)" onclick="showHistoryModal()" 
-                       class="flex items-center text-[#290C73] hover:text-[#442a8a] text-sm font-medium transition-all duration-200 group">
-                        <svg class="w-4 h-4 mr-1 group-hover:text-[#FACC15] transition-colors duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                <div class="flex flex-col">
+                    <h1 class="text-base font-bold leading-tight">LITAR Check-In</h1>
+                    <div class="car-plate-mobile mt-1">
+                        <svg class="plate-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
                         </svg>
-                        View Today's History
-                    </a>
+                        <span id="header-plate-text" class="plate-number">---</span>
+                    </div>
                 </div>
             </div>
-       
+            
+            <button onclick="showHistoryModal()" 
+                    class="p-2 hover:bg-white/10 rounded-lg transition-colors flex-shrink-0"
+                    aria-label="View history">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+            </button>
+        </div>
+    </header>
 
-
-        <div class="bg-white rounded-lg shadow-md p-6">
-            <form id="checkin-form">
-                <div class="mb-6">
-                    <label class="block text-gray-700 text-sm font-medium mb-3 text-center">Car Plate</label>
-                    <div class="flex justify-center">
-                        <div id="car-plate-display" class="relative">
-                            <div id="css-plate" class="car-plate css-3d">
-                                <span id="plate-text" class="plate-text">- - - - -</span>
-                            </div>
-                            <input type="hidden" id="car-plate" name="car-plate">
-                        </div>
-                    </div>
+    <!-- Main Form -->
+    <main class="px-4 py-6 pb-8">
+        <form id="checkin-form" class="space-y-5">
+            <input type="hidden" id="car-plate" name="car-plate">
+            
+            <!-- Session Selection -->
+            <div>
+                <label class="label-mobile">
+                    Session <span class="text-red-500">*</span>
+                </label>
+                <div class="session-toggle-mobile">
+                    <input type="radio" name="session" value="KPP02" id="session-kpp02" class="sr-only" checked>
+                    <label for="session-kpp02">KPP02</label>
                     
+                    <input type="radio" name="session" value="KPP03" id="session-kpp03" class="sr-only">
+                    <label for="session-kpp03">KPP03</label>
                 </div>
+            </div>
+            
+            <!-- Duration -->
+            <div>
+                <label for="duration" class="label-mobile">
+                    Duration <span class="text-red-500">*</span>
+                </label>
+                <select id="duration" name="duration" class="input-mobile" required>
+                    <option value="">Select duration</option>
+                    <option value="0.5">30 minutes</option>
+                    <option value="1">1 hour</option>
+                    <option value="1.5">1.5 hours</option>
+                    <option value="2">2 hours</option>
+                    <option value="2.5">2.5 hours</option>
+                    <option value="3">3 hours</option>
+                    <option value="3.5">3.5 hours</option>
+                    <option value="4">4 hours</option>
+                    <option value="4.5">4.5 hours</option>
+                    <option value="5">5 hours</option>
+                </select>
+            </div>
+            
+            <!-- Lesson Time Display -->
+            <div id="time-display-container" class="hidden">
+                <div class="time-badge">
+                    <div class="text-xs font-medium mb-1 opacity-80">Lesson Time</div>
+                    <div id="total-time-display" class="text-base font-bold">--</div>
+                </div>
+            </div>
+            
+            <!-- Agent Code -->
+            <div>
+                <label for="instructor-id" class="label-mobile">
+                    Agent Code <span class="text-red-500">*</span>
+                </label>
+                <input type="text" 
+                       id="instructor-id" 
+                       class="input-mobile"
+                       placeholder="Enter your agent code"
+                       inputmode="text"
+                       autocomplete="off"
+                       autocapitalize="characters"
+                       required
+                       oninput="this.value = this.value.toUpperCase()">
+            </div>
 
-                <div class="mb-4">
-                    <label class="block text-gray-700 text-sm font-medium mb-3">Session *</label>
-                    <div class="flex items-center justify-center">
-                        <div class="relative inline-flex items-center bg-[#C6C5CB] rounded-full p-1">
-                            <input type="radio" name="session" value="KPP02" id="session-kpp02" class="sr-only" required>
-                            <label for="session-kpp02" class="relative flex items-center justify-center px-6 py-2 text-sm font-medium rounded-full cursor-pointer transition-all duration-200 session-option">
-                                <span class="z-10">KPP02</span>
-                            </label>
-                            
-                            <input type="radio" name="session" value="KPP03" id="session-kpp03" class="sr-only">
-                            <label for="session-kpp03" class="relative flex items-center justify-center px-6 py-2 text-sm font-medium rounded-full cursor-pointer transition-all duration-200 session-option">
-                                <span class="z-10">KPP03</span>
-                            </label>
-                            
-                            <div class="absolute top-1 left-1 w-1/2 h-8 bg-white rounded-full shadow-md transition-transform duration-200 transform session-slider"></div>
-                        </div>
-                    </div>
-                </div>
+            <!-- Student Name -->
+            <div>
+                <label for="student-name" class="label-mobile">
+                    Student Name <span class="text-red-500">*</span>
+                </label>
+                <input type="text" 
+                       id="student-name" 
+                       class="input-mobile"
+                       placeholder="Enter student name"
+                       autocomplete="name"
+                       autocapitalize="words"
+                       required
+                       oninput="this.value = this.value.toUpperCase()">
+            </div>
+
+            <!-- Student IC/Passport -->
+            <div>
+                <label for="student-id" class="label-mobile">
+                    Student IC/Passport <span class="text-red-500">*</span>
+                </label>
+                <input type="text" 
+                       id="student-id" 
+                       class="input-mobile"
+                       placeholder="e.g., 990101012345"
+                       inputmode="numeric"
+                       autocomplete="off"
+                       required
+                       oninput="this.value = this.value.toUpperCase()">
                 
-                <div class="mb-4">
-                    <label class="block text-gray-700 text-sm font-medium mb-2">Duration *</label>
-                    <select id="duration" name="duration" 
-                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#FACC15]" required>
-                        <option value="">Select duration</option>
-                        <option value="0.5">30 minutes</option>
-                        <option value="1">1 hour</option>
-                        <option value="1.5">1.5 hours</option>
-                        <option value="2">2 hours</option>
-                        <option value="2.5">2.5 hours</option>
-                        <option value="3">3 hours</option>
-                        <option value="3.5">3.5 hours</option>
-                        <option value="4">4 hours</option>
-                        <option value="4.5">4.5 hours</option>
-                        <option value="5">5 hours</option>
-                    </select>
-                </div>
-                
-                <div class="mb-4 bg-[#FACC15]/20 border border-[#FACC15] rounded-lg p-3">
-                    <label class="block text-gray-700 text-sm font-medium mb-1">Lesson Time</label>
-                    <div id="total-time-display" class="text-[#290C73] font-medium text-center">
-                        Select duration to see time range
-                    </div>
-                </div>
-                
+                <!-- Duplicate warning (hidden by default) -->
+                <div id="duplicate-warning" class="hidden"></div>
+            </div>
 
-                <div class="mb-4">
-                    <label class="block text-gray-700 text-sm font-medium mb-2">Agent Code *</label>
-                    <input type="text" id="instructor-id" 
-                           class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#FACC15]"
-                           placeholder="Enter your instructor ID"
-                           required
-                           oninput="this.value = this.value.toUpperCase()">
-                </div>
-
-                <div class="mb-4">
-                    <label class="block text-gray-700 text-sm font-medium mb-2">Student Name *</label>
-                    <input type="text" id="student-name" 
-                           class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#FACC15]"
-                           placeholder="Enter student name"
-                           required
-                           oninput="this.value = this.value.toUpperCase()">
-                </div>
-
-                <div class="mb-6">
-                    <label class="block text-gray-700 text-sm font-medium mb-2">
-                        Student IC/Passport * <i>Cth: 080808120909</i>
-                    </label>
-                    <input type="text" id="student-id" 
-                           class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#FACC15]"
-                           placeholder="Enter student ID"
-                           required
-                           oninput="this.value = this.value.toUpperCase()">
-                </div>
-
-                <button type="submit" 
-                        class="w-full extruded-button-secondary bg-[#FACC15] text-[#290C73] py-3 px-4 rounded-md hover:bg-[#ffde59] focus:outline-none focus:ring-2 focus:ring-[#290C73] font-medium transition duration-200">
+            <!-- Submit Button -->
+            <div class="pt-4">
+                <button type="submit" class="btn-primary-mobile" id="submit-btn">
                     Check In
                 </button>
-            </form>
-        </div>
+            </div>
+        </form>
+    </main>
 
-        <div id="success-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
-            <div class="bg-white rounded-lg p-6 mx-4 max-w-sm w-full">
-                <div class="text-center">
-                    <div class="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-                        </svg>
-                    </div>
-                    <h3 class="text-lg font-medium text-gray-900 mb-2">Check-In Successful!</h3>
-                    <p class="text-gray-600 mb-4">The lesson has been recorded.</p>
-                    <button onclick="closeSuccessModal()" 
-                            class="w-full bg-green-600 text-white py-2 px-4 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 font-medium transition duration-200">
-                        New Check-In
+    <!-- Success Modal (Bottom Sheet) -->
+    <div id="success-modal" class="fixed inset-0 bg-black/50 modal-backdrop hidden z-50" onclick="if(event.target === this) closeSuccessModal()">
+        <div class="modal-mobile" id="success-modal-content">
+            <div class="text-center">
+                <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <svg class="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path>
+                    </svg>
+                </div>
+                <h3 class="text-xl font-bold text-gray-900 mb-2">Success!</h3>
+                <p class="text-gray-600 mb-6">Check-in recorded successfully</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Duplicate Modal (Bottom Sheet) -->
+    <div id="duplicate-modal" class="fixed inset-0 bg-black/50 modal-backdrop hidden z-50" onclick="if(event.target === this) closeDuplicateModal()">
+        <div class="modal-mobile" id="duplicate-modal-content">
+            <div class="text-center">
+                <div class="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <svg class="w-8 h-8 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-.834-1.964-.834-2.732 0L3.35 16c-.77 1.333.192 3 1.732 3z"></path>
+                    </svg>
+                </div>
+                <h3 class="text-xl font-bold text-gray-900 mb-2">Duplicate Detected</h3>
+                <p class="text-gray-600 mb-6">This student already checked in today. Proceed anyway?</p>
+                <div class="grid grid-cols-2 gap-3">
+                    <button onclick="closeDuplicateModal()" 
+                            class="py-3 px-4 bg-gray-200 text-gray-800 font-semibold rounded-lg hover:bg-gray-300 transition-colors">
+                        Cancel
+                    </button>
+                    <button onclick="confirmDuplicateCheckin()" 
+                            class="py-3 px-4 bg-[#290C73] text-white font-semibold rounded-lg hover:bg-[#1e0854] transition-colors">
+                        Proceed
                     </button>
                 </div>
             </div>
         </div>
+    </div>
 
-        <div id="duplicate-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
-            <div class="bg-white rounded-lg p-6 mx-4 max-w-sm w-full">
-                <div class="text-center">
-                    <div class="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.35 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
-                        </svg>
-                    </div>
-                    <h3 class="text-lg font-medium text-gray-900 mb-2">Duplicate Check-In Detected</h3>
-                    <p class="text-gray-600 mb-4">This student already has a check-in today. Are you sure you want to proceed?</p>
-                    <div class="flex space-x-3">
-                        <button onclick="closeDuplicateModal()" 
-                                class="flex-1 bg-gray-300 text-gray-700 py-2 px-4 rounded-md hover:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-500 transition duration-200">
-                            Cancel
-                        </button>
-                        <button onclick="confirmDuplicateCheckin()" 
-                                class="flex-1 bg-red-600 text-white py-2 px-4 rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 transition duration-200">
-                            Proceed
-                        </button>
-                    </div>
+    <!-- Error Modal (Bottom Sheet) -->
+    <div id="error-modal" class="fixed inset-0 bg-black/50 modal-backdrop hidden z-50" onclick="if(event.target === this) closeErrorModal()">
+        <div class="modal-mobile" id="error-modal-content">
+            <div class="text-center">
+                <div class="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <svg class="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </div>
+                <h3 class="text-xl font-bold text-gray-900 mb-2">Error</h3>
+                <p id="error-message" class="text-gray-600 mb-6">Something went wrong</p>
+                <button onclick="closeErrorModal()" 
+                        class="w-full py-3 px-4 bg-red-600 text-white font-semibold rounded-lg hover:bg-red-700 transition-colors">
+                    OK
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- History Modal (Full Screen on Mobile) -->
+    <div id="history-modal" class="fixed inset-0 bg-white hidden z-50 safe-top safe-bottom">
+        <div class="flex flex-col h-full">
+            <header class="bg-[#290C73] text-white px-4 py-4 flex items-center justify-between">
+                <h3 class="text-lg font-bold">Today's History</h3>
+                <button onclick="closeHistoryModal()" 
+                        class="p-2 hover:bg-white/10 rounded-lg transition-colors"
+                        aria-label="Close">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </header>
+            <div id="history-content" class="flex-1 overflow-y-auto px-4 py-4">
+                <div class="text-center py-12 text-gray-500">
+                    Loading...
                 </div>
             </div>
         </div>
-
-        <div id="history-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
-            <div class="bg-white rounded-lg p-6 mx-4 max-w-md w-full max-h-96 overflow-hidden flex flex-col">
-                <div class="flex justify-between items-center mb-4">
-                    <h3 class="text-lg font-medium text-gray-900">Today's Check-In History</h3>
-                    <button onclick="closeHistoryModal()" class="text-[#290C73]/50 hover:text-[#290C73]">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                        </svg>
-                    </button>
-                </div>
-                <div id="history-content" class="flex-1 overflow-y-auto">
-                    <div class="text-center py-8 text-gray-500">
-                        Loading history...
-                    </div>
-                </div>
-            </div>
-        </div>
-
     </div>
 
     <script src="assets/app.js"></script>
+    <script>
+        // Activate modals with animation
+        function showModal(modalId) {
+            const modal = document.getElementById(modalId);
+            const content = modal.querySelector('.modal-mobile');
+            modal.classList.remove('hidden');
+            setTimeout(() => content.classList.add('active'), 10);
+        }
+        
+        function hideModal(modalId) {
+            const modal = document.getElementById(modalId);
+            const content = modal.querySelector('.modal-mobile');
+            if (content) {
+                content.classList.remove('active');
+                setTimeout(() => modal.classList.add('hidden'), 300);
+            } else {
+                modal.classList.add('hidden');
+            }
+        }
+        
+        // Override modal functions
+        function showSuccessModal() {
+            showModal('success-modal');
+        }
+        
+        function closeSuccessModal() {
+            hideModal('success-modal');
+            // Reset form logic here
+            document.getElementById('checkin-form').reset();
+            document.getElementById('session-kpp02').checked = true;
+            document.getElementById('duplicate-warning').classList.add('hidden');
+            document.getElementById('time-display-container').classList.add('hidden');
+        }
+        
+        function showDuplicateModal() {
+            showModal('duplicate-modal');
+        }
+        
+        function closeDuplicateModal() {
+            hideModal('duplicate-modal');
+        }
+        
+        function showErrorMessage(message) {
+            document.getElementById('error-message').textContent = message;
+            showModal('error-modal');
+        }
+        
+        function closeErrorModal() {
+            hideModal('error-modal');
+        }
+        
+        function showHistoryModal() {
+            document.getElementById('history-modal').classList.remove('hidden');
+            // Load history logic
+        }
+        
+        function closeHistoryModal() {
+            document.getElementById('history-modal').classList.add('hidden');
+        }
+        
+        // Update header car plate
+        function setCarPlate(plate) {
+            document.getElementById('car-plate').value = plate;
+            document.getElementById('header-plate-text').textContent = plate;
+        }
+        
+        // Show time display when duration selected
+        document.getElementById('duration').addEventListener('change', function() {
+            const container = document.getElementById('time-display-container');
+            if (this.value) {
+                container.classList.remove('hidden');
+            } else {
+                container.classList.add('hidden');
+            }
+        });
+    </script>
 </body>
 </html>
