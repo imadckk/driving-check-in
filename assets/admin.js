@@ -2,7 +2,7 @@
  * Admin Report - Driving School
  * Complete rewrite with date range support
  * Malaysia Timezone (UTC+8)
- * Version 2.5 - Fixed PDF bold issue on second page
+ * Version 2.6 - Grouped by date in PDF
  */
 
 // ============================================
@@ -14,14 +14,13 @@ const CONFIG = {
     AUTO_REFRESH_INTERVAL: 30000, // 30 seconds
     TIMEZONE: 'Asia/Kuala_Lumpur', // Malaysia timezone
     TABLE_COLUMNS: [
-        { header: 'Date', width: 22 },
-        { header: 'Session', width: 12 },
-        { header: 'Instructor', width: 18 },
-        { header: 'Student', width: 39 },
-        { header: 'Student ID', width: 25 },
+        { header: 'Session', width: 15 },
+        { header: 'Instructor', width: 20 },
+        { header: 'Student', width: 35 },
+        { header: 'Student ID', width: 22 },
         { header: 'Car Plate', width: 18 },
         { header: 'Duration', width: 15 },
-        { header: 'Time Range', width: 25 }
+        { header: 'Time Range', width: 30 }
     ],
     PDF_COLORS: {
         headerBg: [59, 130, 246],
@@ -30,7 +29,9 @@ const CONFIG = {
         oddRowBg: [255, 255, 255],
         text: [0, 0, 0],
         title: [31, 41, 55],
-        summary: [59, 130, 246]
+        summary: [59, 130, 246],
+        dateGroupBg: [243, 244, 246],
+        dateGroupText: [31, 41, 55]
     }
 };
 
@@ -137,16 +138,22 @@ function formatToLocalDate(isoString) {
     return `${day}/${month}/${year}`;
 }
 
+function getDateKey(isoString) {
+    const date = new Date(isoString);
+    const malaysiaTime = new Date(date.toLocaleString('en-US', { timeZone: CONFIG.TIMEZONE }));
+    const day = String(malaysiaTime.getDate()).padStart(2, '0');
+    const month = String(malaysiaTime.getMonth() + 1).padStart(2, '0');
+    const year = malaysiaTime.getFullYear();
+    return `${year}-${month}-${day}`;
+}
+
 /**
  * Sanitize text for PDF - removes special characters that might cause issues
  */
 function sanitizeForPDF(text) {
     if (text == null) return 'N/A';
-    // Convert to string and remove any non-printable characters
     let clean = String(text);
-    // Replace common problematic characters
     clean = clean.replace(/[^\x20-\x7E]/g, '');
-    // Truncate if too long
     if (clean.length > 50) {
         clean = clean.substring(0, 47) + '...';
     }
@@ -416,7 +423,29 @@ function clearFilters() {
 }
 
 // ============================================
-// PDF GENERATION (FIXED - No bold on second page)
+// GROUP CHECKINS BY DATE
+// ============================================
+
+function groupCheckinsByDate(checkins) {
+    const grouped = {};
+    checkins.forEach(checkin => {
+        const dateKey = getDateKey(checkin.timestamp);
+        if (!grouped[dateKey]) {
+            grouped[dateKey] = [];
+        }
+        grouped[dateKey].push(checkin);
+    });
+    // Sort dates in descending order (newest first)
+    const sortedDates = Object.keys(grouped).sort((a, b) => b.localeCompare(a));
+    const result = {};
+    sortedDates.forEach(date => {
+        result[date] = grouped[date];
+    });
+    return result;
+}
+
+// ============================================
+// PDF GENERATION (Grouped by Date)
 // ============================================
 
 /**
@@ -448,7 +477,6 @@ async function generatePDFPreview() {
         return;
     }
 
-    // Check if jsPDF is loaded
     if (!isJsPDFLoaded()) {
         console.error('jsPDF library not loaded');
         alert('PDF library is still loading. Please wait a moment and try again.');
@@ -462,7 +490,6 @@ async function generatePDFPreview() {
         }
     }
     
-    // Show modal with loading state
     DOM.pdfModal.classList.remove('hidden');
     DOM.pdfContent.innerHTML = `
         <div class="flex items-center justify-center h-full">
@@ -535,16 +562,7 @@ function retryPDFGeneration() {
 }
 
 /**
- * Reset font settings for a new page
- */
-function resetPageFontSettings(doc) {
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(6);
-    doc.setTextColor(0, 0, 0);
-}
-
-/**
- * Create PDF document - FIXED version with proper font reset on new pages
+ * Create PDF document - Grouped by Date
  */
 function createPDF() {
     return new Promise((resolve, reject) => {
@@ -602,7 +620,6 @@ function createPDF() {
             if (car) filterText += ` | Car: ${car}`;
             if (sess) filterText += ` | Session: ${sess}`;
             
-            // Sanitize filter text
             filterText = sanitizeForPDF(filterText);
             doc.text(filterText, margin, 28);
             
@@ -614,130 +631,161 @@ function createPDF() {
             doc.setTextColor(255, 255, 255);
             doc.text(`Total: ${State.checkins.length}`, margin + 5, 39);
             
-            // --- Table ---
+            // --- Group checkins by date ---
+            const groupedData = groupCheckinsByDate(State.checkins);
+            const dateKeys = Object.keys(groupedData);
+            
+            // --- Table columns (excluding Date column since we group by date) ---
+            const columnConfig = [
+                { header: 'Session', width: 15 },
+                { header: 'Instructor', width: 20 },
+                { header: 'Student', width: 35 },
+                { header: 'Student ID', width: 22 },
+                { header: 'Car Plate', width: 18 },
+                { header: 'Duration', width: 15 },
+                { header: 'Time Range', width: 30 }
+            ];
+            
             const rowHeight = 8;
             let yPosition = 50;
             
-            const columnConfig = [
-                { header: 'Date', width: 22 },
-                { header: 'Session', width: 12 },
-                { header: 'Instructor', width: 18 },
-                { header: 'Student', width: 39 },
-                { header: 'Student ID', width: 25 },
-                { header: 'Car Plate', width: 18 },
-                { header: 'Duration', width: 15 },
-                { header: 'Time Range', width: 25 }
-            ];
-            
-            // Reset font to normal before drawing table
-            doc.setFont('helvetica', 'normal');
-            doc.setFontSize(7);
-            
-            // Draw header
-            doc.setFillColor(59, 130, 246);
-            doc.rect(margin, yPosition, contentWidth, rowHeight, 'F');
-            doc.setFontSize(7);
-            doc.setFont('helvetica', 'bold');
-            doc.setTextColor(255, 255, 255);
-            
-            let xPos = margin + 1;
-            columnConfig.forEach(col => {
-                doc.text(col.header, xPos, yPosition + 5);
-                xPos += col.width;
-            });
-            yPosition += rowHeight;
-            
-            // Reset font for data rows
-            doc.setFont('helvetica', 'normal');
-            doc.setFontSize(6);
-            doc.setTextColor(0, 0, 0);
-            
-            // Draw rows
-            State.checkins.forEach((checkin, index) => {
-                // Check page break
-                if (yPosition > 270) {
+            // Process each date group
+            dateKeys.forEach((dateKey, dateIndex) => {
+                const checkinsForDate = groupedData[dateKey];
+                const dateDisplay = formatDateDisplay(dateKey);
+                
+                // Check if we need a new page for the date header
+                if (yPosition > 260) {
                     doc.addPage();
                     yPosition = 20;
-                    
-                    // IMPORTANT: Reset font settings after adding new page
-                    doc.setFont('helvetica', 'normal');
-                    doc.setFontSize(7);
-                    doc.setTextColor(0, 0, 0);
-                    
-                    // Redraw header on new page
-                    doc.setFillColor(59, 130, 246);
-                    doc.rect(margin, yPosition, contentWidth, rowHeight, 'F');
-                    doc.setFontSize(7);
-                    doc.setFont('helvetica', 'bold');
-                    doc.setTextColor(255, 255, 255);
-                    
-                    let x = margin + 1;
-                    columnConfig.forEach(col => {
-                        doc.text(col.header, x, yPosition + 5);
-                        x += col.width;
-                    });
-                    yPosition += rowHeight;
-                    
-                    // Reset font for data rows on new page
+                    // Reset font settings
                     doc.setFont('helvetica', 'normal');
                     doc.setFontSize(6);
                     doc.setTextColor(0, 0, 0);
                 }
                 
-                // Row background
-                const isEven = index % 2 === 0;
-                doc.setFillColor(isEven ? 249 : 255, isEven ? 250 : 255, isEven ? 251 : 255);
-                doc.rect(margin, yPosition, contentWidth, rowHeight, 'F');
+                // --- Date Group Header ---
+                doc.setFillColor(243, 244, 246);
+                doc.rect(margin, yPosition, contentWidth, rowHeight + 2, 'F');
+                doc.setFontSize(10);
+                doc.setFont('helvetica', 'bold');
+                doc.setTextColor(31, 41, 55);
+                doc.text(`📅 ${dateDisplay} (${checkinsForDate.length} records)`, margin + 5, yPosition + 6);
+                yPosition += rowHeight + 2;
                 
-                // Reset text color and font for each row (ensure consistency)
+                // Check if we need a new page for the table
+                if (yPosition > 260) {
+                    doc.addPage();
+                    yPosition = 20;
+                    doc.setFont('helvetica', 'normal');
+                    doc.setFontSize(6);
+                    doc.setTextColor(0, 0, 0);
+                }
+                
+                // --- Table Header for this date group ---
+                doc.setFillColor(59, 130, 246);
+                doc.rect(margin, yPosition, contentWidth, rowHeight, 'F');
+                doc.setFontSize(7);
+                doc.setFont('helvetica', 'bold');
+                doc.setTextColor(255, 255, 255);
+                
+                let xPos = margin + 1;
+                columnConfig.forEach(col => {
+                    doc.text(col.header, xPos, yPosition + 5);
+                    xPos += col.width;
+                });
+                yPosition += rowHeight;
+                
+                // Reset font for data rows
                 doc.setFont('helvetica', 'normal');
                 doc.setFontSize(6);
                 doc.setTextColor(0, 0, 0);
                 
-                // Row data - all sanitized
-                let cellX = margin + 1;
+                // --- Data rows for this date ---
+                checkinsForDate.forEach((checkin, index) => {
+                    // Check page break
+                    if (yPosition > 270) {
+                        doc.addPage();
+                        yPosition = 20;
+                        
+                        // Reset font settings
+                        doc.setFont('helvetica', 'normal');
+                        doc.setFontSize(7);
+                        doc.setTextColor(0, 0, 0);
+                        
+                        // Redraw table header on new page
+                        doc.setFillColor(59, 130, 246);
+                        doc.rect(margin, yPosition, contentWidth, rowHeight, 'F');
+                        doc.setFontSize(7);
+                        doc.setFont('helvetica', 'bold');
+                        doc.setTextColor(255, 255, 255);
+                        
+                        let x = margin + 1;
+                        columnConfig.forEach(col => {
+                            doc.text(col.header, x, yPosition + 5);
+                            x += col.width;
+                        });
+                        yPosition += rowHeight;
+                        
+                        // Reset font for data rows
+                        doc.setFont('helvetica', 'normal');
+                        doc.setFontSize(6);
+                        doc.setTextColor(0, 0, 0);
+                    }
+                    
+                    // Row background
+                    const isEven = index % 2 === 0;
+                    doc.setFillColor(isEven ? 249 : 255, isEven ? 250 : 255, isEven ? 251 : 255);
+                    doc.rect(margin, yPosition, contentWidth, rowHeight, 'F');
+                    
+                    // Reset text color and font for each row
+                    doc.setFont('helvetica', 'normal');
+                    doc.setFontSize(6);
+                    doc.setTextColor(0, 0, 0);
+                    
+                    // Row data
+                    let cellX = margin + 1;
+                    
+                    // Session
+                    const sessionText = sanitizeForPDF(checkin.session || 'N/A');
+                    doc.text(sessionText, cellX, yPosition + 5);
+                    cellX += columnConfig[0].width;
+                    
+                    // Instructor
+                    const instructorText = sanitizeForPDF(checkin.instructor_id || 'N/A');
+                    doc.text(instructorText, cellX, yPosition + 5);
+                    cellX += columnConfig[1].width;
+                    
+                    // Student Name
+                    const studentNameText = sanitizeForPDF(checkin.student_name || 'N/A');
+                    doc.text(studentNameText, cellX, yPosition + 5);
+                    cellX += columnConfig[2].width;
+                    
+                    // Student ID
+                    const studentIdText = sanitizeForPDF(checkin.student_id || 'N/A');
+                    doc.text(studentIdText, cellX, yPosition + 5);
+                    cellX += columnConfig[3].width;
+                    
+                    // Car Plate
+                    const carPlateText = sanitizeForPDF(checkin.car_plate || 'N/A');
+                    doc.text(carPlateText, cellX, yPosition + 5);
+                    cellX += columnConfig[4].width;
+                    
+                    // Duration
+                    const durationText = checkin.duration ? sanitizeForPDF(checkin.duration + 'h') : 'N/A';
+                    doc.text(durationText, cellX, yPosition + 5);
+                    cellX += columnConfig[5].width;
+                    
+                    // Time Range
+                    const timeRangeText = checkin.start_time && checkin.end_time ? 
+                        sanitizeForPDF(`${checkin.start_time} - ${checkin.end_time}`) : 'N/A';
+                    doc.text(timeRangeText, cellX, yPosition + 5);
+                    
+                    yPosition += rowHeight;
+                });
                 
-                // Date
-                const dateText = sanitizeForPDF(formatToLocalDate(checkin.timestamp));
-                doc.text(dateText, cellX, yPosition + 5);
-                cellX += columnConfig[0].width;
-                
-                // Session
-                const sessionText = sanitizeForPDF(checkin.session || 'N/A');
-                doc.text(sessionText, cellX, yPosition + 5);
-                cellX += columnConfig[1].width;
-                
-                // Instructor
-                const instructorText = sanitizeForPDF(checkin.instructor_id || 'N/A');
-                doc.text(instructorText, cellX, yPosition + 5);
-                cellX += columnConfig[2].width;
-                
-                // Student Name
-                const studentNameText = sanitizeForPDF(checkin.student_name || 'N/A');
-                doc.text(studentNameText, cellX, yPosition + 5);
-                cellX += columnConfig[3].width;
-                
-                // Student ID
-                const studentIdText = sanitizeForPDF(checkin.student_id || 'N/A');
-                doc.text(studentIdText, cellX, yPosition + 5);
-                cellX += columnConfig[4].width;
-                
-                // Car Plate
-                const carPlateText = sanitizeForPDF(checkin.car_plate || 'N/A');
-                doc.text(carPlateText, cellX, yPosition + 5);
-                cellX += columnConfig[5].width;
-                
-                // Duration
-                const durationText = checkin.duration ? sanitizeForPDF(checkin.duration + 'h') : 'N/A';
-                doc.text(durationText, cellX, yPosition + 5);
-                cellX += columnConfig[6].width;
-                
-                // Time Range
-                const timeRangeText = checkin.start_time && checkin.end_time ? 
-                    sanitizeForPDF(`${checkin.start_time} - ${checkin.end_time}`) : 'N/A';
-                doc.text(timeRangeText, cellX, yPosition + 5);
-                
-                yPosition += rowHeight;
+                // Add a small gap between date groups
+                yPosition += 4;
             });
             
             // --- Page numbers ---
@@ -799,7 +847,6 @@ function stopAutoRefresh() {
 // ============================================
 
 function init() {
-    // Wait for libraries to load
     const checkLibraries = setInterval(() => {
         if (isJsPDFLoaded()) {
             State.pdfLibraryLoaded = true;
