@@ -73,18 +73,21 @@ function getMalaysiaTomorrow() {
 function getMalaysiaDateRange(dateStr) {
     const [year, month, day] = dateStr.split('-').map(Number);
     
-    // Create a date at midnight in Malaysia timezone
-    const malaysiaStart = new Date(year, month - 1, day, 0, 0, 0);
-    const malaysiaEnd = new Date(year, month - 1, day, 23, 59, 59);
+    // Create date at midnight in Malaysia timezone using the timezone offset
+    // Malaysia is UTC+8, so we need to adjust
+    const malaysiaOffset = 8 * 60; // 8 hours in minutes
     
-    // Convert to UTC for Supabase query
-    // Using toISOString will give us the correct UTC representation
-    const startUTC = new Date(malaysiaStart.toISOString());
-    const endUTC = new Date(malaysiaEnd.toISOString());
+    // Start of day in Malaysia (00:00:00)
+    // Create a UTC date that represents midnight in Malaysia
+    const startUTC = new Date(Date.UTC(year, month - 1, day, 0, 0, 0));
+    // Subtract 8 hours to get UTC time
+    startUTC.setHours(startUTC.getHours() - 8);
+    
+    // End of day in Malaysia (23:59:59.999)
+    const endUTC = new Date(Date.UTC(year, month - 1, day, 23, 59, 59, 999));
+    endUTC.setHours(endUTC.getHours() - 8);
     
     console.log('Date filter:', dateStr);
-    console.log('Malaysia start:', malaysiaStart.toLocaleString('en-US', { timeZone: CONFIG.TIMEZONE }));
-    console.log('Malaysia end:', malaysiaEnd.toLocaleString('en-US', { timeZone: CONFIG.TIMEZONE }));
     console.log('UTC start:', startUTC.toISOString());
     console.log('UTC end:', endUTC.toISOString());
     
@@ -101,13 +104,13 @@ function getMalaysiaDateRangeExtended(fromDate, toDate) {
     const [fromYear, fromMonth, fromDay] = fromDate.split('-').map(Number);
     const [toYear, toMonth, toDay] = toDate.split('-').map(Number);
     
-    // Start of from date in Malaysia
-    const malaysiaStart = new Date(fromYear, fromMonth - 1, fromDay, 0, 0, 0);
-    // End of to date in Malaysia
-    const malaysiaEnd = new Date(toYear, toMonth - 1, toDay, 23, 59, 59);
+    // Start of from date in Malaysia (00:00:00)
+    const startUTC = new Date(Date.UTC(fromYear, fromMonth - 1, fromDay, 0, 0, 0));
+    startUTC.setHours(startUTC.getHours() - 8);
     
-    const startUTC = new Date(malaysiaStart.toISOString());
-    const endUTC = new Date(malaysiaEnd.toISOString());
+    // End of to date in Malaysia (23:59:59.999)
+    const endUTC = new Date(Date.UTC(toYear, toMonth - 1, toDay, 23, 59, 59, 999));
+    endUTC.setHours(endUTC.getHours() - 8);
     
     return {
         start: startUTC.toISOString(),
