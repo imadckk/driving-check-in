@@ -2,7 +2,7 @@
  * Admin Report - Driving School
  * Complete rewrite with date range support
  * Malaysia Timezone (UTC+8)
- * Version 2.6 - Grouped by date in PDF
+ * Version 2.7 - Fixed date headers (no emojis)
  */
 
 // ============================================
@@ -153,6 +153,7 @@ function getDateKey(isoString) {
 function sanitizeForPDF(text) {
     if (text == null) return 'N/A';
     let clean = String(text);
+    // Remove emojis and other non-printable characters
     clean = clean.replace(/[^\x20-\x7E]/g, '');
     if (clean.length > 50) {
         clean = clean.substring(0, 47) + '...';
@@ -445,7 +446,7 @@ function groupCheckinsByDate(checkins) {
 }
 
 // ============================================
-// PDF GENERATION (Grouped by Date)
+// PDF GENERATION (Grouped by Date - No Emojis)
 // ============================================
 
 /**
@@ -562,7 +563,7 @@ function retryPDFGeneration() {
 }
 
 /**
- * Create PDF document - Grouped by Date
+ * Create PDF document - Grouped by Date (No Emojis)
  */
 function createPDF() {
     return new Promise((resolve, reject) => {
@@ -652,6 +653,7 @@ function createPDF() {
             // Process each date group
             dateKeys.forEach((dateKey, dateIndex) => {
                 const checkinsForDate = groupedData[dateKey];
+                // Format date as DD-MM-YYYY for display
                 const dateDisplay = formatDateDisplay(dateKey);
                 
                 // Check if we need a new page for the date header
@@ -664,13 +666,15 @@ function createPDF() {
                     doc.setTextColor(0, 0, 0);
                 }
                 
-                // --- Date Group Header ---
+                // --- Date Group Header (No emoji) ---
                 doc.setFillColor(243, 244, 246);
                 doc.rect(margin, yPosition, contentWidth, rowHeight + 2, 'F');
                 doc.setFontSize(10);
                 doc.setFont('helvetica', 'bold');
                 doc.setTextColor(31, 41, 55);
-                doc.text(`📅 ${dateDisplay} (${checkinsForDate.length} records)`, margin + 5, yPosition + 6);
+                // Plain text date header - no emoji
+                const headerText = `Date: ${dateDisplay} (${checkinsForDate.length} records)`;
+                doc.text(headerText, margin + 5, yPosition + 6);
                 yPosition += rowHeight + 2;
                 
                 // Check if we need a new page for the table
