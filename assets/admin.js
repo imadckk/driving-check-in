@@ -1,6 +1,6 @@
 /**
  * Admin Report - Driving School
- * Version 2.9 - With Agent Names
+ * Version 3.0 - Fixed date filtering
  */
 
 // ============================================
@@ -50,7 +50,7 @@ const DOM = {
 };
 
 // ============================================
-// TIMEZONE UTILITY FUNCTIONS
+// TIMEZONE UTILITY FUNCTIONS (FIXED)
 // ============================================
 
 function getMalaysiaDate() {
@@ -66,27 +66,58 @@ function getMalaysiaTomorrow() {
     return malaysiaTime.toISOString().split('T')[0];
 }
 
+/**
+ * FIXED: Get date range in Malaysia timezone
+ * This properly handles the date filtering for Supabase
+ */
 function getMalaysiaDateRange(dateStr) {
     const [year, month, day] = dateStr.split('-').map(Number);
-    const startUTC = new Date(Date.UTC(year, month - 1, day - 1, 16, 0, 0));
-    const endUTC = new Date(Date.UTC(year, month - 1, day, 15, 59, 59));
+    
+    // Create a date at midnight in Malaysia timezone
+    const malaysiaStart = new Date(year, month - 1, day, 0, 0, 0);
+    const malaysiaEnd = new Date(year, month - 1, day, 23, 59, 59);
+    
+    // Convert to UTC for Supabase query
+    // Using toISOString will give us the correct UTC representation
+    const startUTC = new Date(malaysiaStart.toISOString());
+    const endUTC = new Date(malaysiaEnd.toISOString());
+    
+    console.log('Date filter:', dateStr);
+    console.log('Malaysia start:', malaysiaStart.toLocaleString('en-US', { timeZone: CONFIG.TIMEZONE }));
+    console.log('Malaysia end:', malaysiaEnd.toLocaleString('en-US', { timeZone: CONFIG.TIMEZONE }));
+    console.log('UTC start:', startUTC.toISOString());
+    console.log('UTC end:', endUTC.toISOString());
+    
     return {
         start: startUTC.toISOString(),
         end: endUTC.toISOString()
     };
 }
 
+/**
+ * FIXED: Get date range extended in Malaysia timezone
+ */
 function getMalaysiaDateRangeExtended(fromDate, toDate) {
     const [fromYear, fromMonth, fromDay] = fromDate.split('-').map(Number);
     const [toYear, toMonth, toDay] = toDate.split('-').map(Number);
-    const startUTC = new Date(Date.UTC(fromYear, fromMonth - 1, fromDay - 1, 16, 0, 0));
-    const endUTC = new Date(Date.UTC(toYear, toMonth - 1, toDay, 15, 59, 59));
+    
+    // Start of from date in Malaysia
+    const malaysiaStart = new Date(fromYear, fromMonth - 1, fromDay, 0, 0, 0);
+    // End of to date in Malaysia
+    const malaysiaEnd = new Date(toYear, toMonth - 1, toDay, 23, 59, 59);
+    
+    const startUTC = new Date(malaysiaStart.toISOString());
+    const endUTC = new Date(malaysiaEnd.toISOString());
+    
     return {
         start: startUTC.toISOString(),
         end: endUTC.toISOString()
     };
 }
 
+/**
+ * Format date from YYYY-MM-DD to DD-MM-YYYY
+ */
 function formatDateDisplay(dateString) {
     if (!dateString) return '';
     const parts = dateString.split('-');
@@ -96,6 +127,9 @@ function formatDateDisplay(dateString) {
     return dateString;
 }
 
+/**
+ * Format ISO timestamp to local date/time with Malaysia timezone
+ */
 function formatToLocalDateTime(isoString) {
     const date = new Date(isoString);
     const malaysiaTime = new Date(date.toLocaleString('en-US', { timeZone: CONFIG.TIMEZONE }));
@@ -109,6 +143,9 @@ function formatToLocalDateTime(isoString) {
     return `${day}/${month}/${year} ${String(hours).padStart(2, '0')}:${minutes} ${ampm}`;
 }
 
+/**
+ * Format ISO timestamp to date only (DD/MM/YYYY) with Malaysia timezone
+ */
 function formatToLocalDate(isoString) {
     const date = new Date(isoString);
     const malaysiaTime = new Date(date.toLocaleString('en-US', { timeZone: CONFIG.TIMEZONE }));
@@ -118,6 +155,9 @@ function formatToLocalDate(isoString) {
     return `${day}/${month}/${year}`;
 }
 
+/**
+ * Get date key for grouping
+ */
 function getDateKey(isoString) {
     const date = new Date(isoString);
     const malaysiaTime = new Date(date.toLocaleString('en-US', { timeZone: CONFIG.TIMEZONE }));
@@ -236,7 +276,7 @@ function initDateMode() {
 }
 
 // ============================================
-// DATA LOADING
+// DATA LOADING (FIXED)
 // ============================================
 
 function buildQueryURL() {
@@ -247,6 +287,7 @@ function buildQueryURL() {
         const dateVal = DOM.dateFilter.value;
         if (dateVal) {
             const range = getMalaysiaDateRange(dateVal);
+            // Use the UTC range for Supabase query
             url += `&timestamp=gte.${range.start}&timestamp=lt.${range.end}`;
         }
     } else {
@@ -266,6 +307,7 @@ function buildQueryURL() {
     if (car) url += `&car_plate=eq.${encodeURIComponent(car)}`;
     if (session) url += `&session=eq.${encodeURIComponent(session)}`;
     
+    console.log('Query URL:', url);
     return url;
 }
 
@@ -276,7 +318,6 @@ async function loadCheckins() {
     showLoading(true);
     
     try {
-        // Load agents first
         if (Object.keys(State.agents).length === 0) {
             await loadAgents();
         }
@@ -294,6 +335,16 @@ async function loadCheckins() {
         }
         
         State.checkins = await response.json();
+        
+        // Debug: Log the first few records to see the dates
+        if (State.checkins.length > 0) {
+            console.log('First 3 records timestamps:');
+            State.checkins.slice(0, 3).forEach((c, i) => {
+                console.log(`Record ${i + 1}:`, c.timestamp);
+                console.log(`  Malaysia date:`, formatToLocalDateTime(c.timestamp));
+            });
+        }
+        
         renderCheckins();
         updateStats();
         
@@ -335,7 +386,6 @@ function renderCheckins() {
         return;
     }
     
-    // Desktop Table - with Agent Name column
     DOM.tableBody.innerHTML = checkins.map(checkin => {
         const agentName = getAgentName(checkin.instructor_id);
         const hasName = hasAgentName(checkin.instructor_id);
@@ -379,7 +429,6 @@ function renderCheckins() {
         </tr>
     `}).join('');
     
-    // Mobile Cards - with Agent Name
     DOM.mobileCards.innerHTML = checkins.map(checkin => {
         const agentName = getAgentName(checkin.instructor_id);
         const hasName = hasAgentName(checkin.instructor_id);
@@ -467,7 +516,7 @@ function clearFilters() {
 }
 
 // ============================================
-// PDF GENERATION (with Agent Names)
+// PDF GENERATION
 // ============================================
 
 function isJsPDFLoaded() {
@@ -578,13 +627,11 @@ function createPDF() {
             const margin = 15;
             const contentWidth = pageWidth - (margin * 2);
             
-            // --- Title ---
             doc.setFontSize(16);
             doc.setFont('helvetica', 'bold');
             doc.setTextColor(31, 41, 55);
             doc.text('Driving Lesson Check-In Report', margin, 20);
             
-            // --- Filter info ---
             doc.setFontSize(8);
             doc.setFont('helvetica', 'normal');
             doc.setTextColor(100, 100, 100);
@@ -623,7 +670,6 @@ function createPDF() {
             filterText = sanitizeForPDF(filterText);
             doc.text(filterText, margin, 28);
             
-            // --- Summary box ---
             doc.setFillColor(59, 130, 246);
             doc.rect(margin, 33, 50, 8, 'F');
             doc.setFontSize(9);
@@ -631,11 +677,9 @@ function createPDF() {
             doc.setTextColor(255, 255, 255);
             doc.text(`Total: ${State.checkins.length}`, margin + 5, 39);
             
-            // --- Group checkins by date ---
             const groupedData = groupCheckinsByDate(State.checkins);
             const dateKeys = Object.keys(groupedData);
             
-            // --- Table columns (with Agent Name) ---
             const columnConfig = [
                 { header: 'Session', width: 15 },
                 { header: 'Instructor', width: 18 },
@@ -654,7 +698,6 @@ function createPDF() {
                 const checkinsForDate = groupedData[dateKey];
                 const dateDisplay = formatDateDisplay(dateKey);
                 
-                // Check page break for date header
                 if (yPosition > 260) {
                     doc.addPage();
                     yPosition = 20;
@@ -663,7 +706,6 @@ function createPDF() {
                     doc.setTextColor(0, 0, 0);
                 }
                 
-                // --- Date Group Header ---
                 doc.setFillColor(243, 244, 246);
                 doc.rect(margin, yPosition, contentWidth, rowHeight + 2, 'F');
                 doc.setFontSize(10);
@@ -680,7 +722,6 @@ function createPDF() {
                     doc.setTextColor(0, 0, 0);
                 }
                 
-                // --- Table Header ---
                 doc.setFillColor(59, 130, 246);
                 doc.rect(margin, yPosition, contentWidth, rowHeight, 'F');
                 doc.setFontSize(7);
@@ -698,7 +739,6 @@ function createPDF() {
                 doc.setFontSize(6);
                 doc.setTextColor(0, 0, 0);
                 
-                // --- Data rows ---
                 checkinsForDate.forEach((checkin, index) => {
                     if (yPosition > 270) {
                         doc.addPage();
@@ -737,35 +777,27 @@ function createPDF() {
                     
                     let cellX = margin + 1;
                     
-                    // Session
                     doc.text(sanitizeForPDF(checkin.session || 'N/A'), cellX, yPosition + 5);
                     cellX += columnConfig[0].width;
                     
-                    // Instructor ID
                     doc.text(sanitizeForPDF(checkin.instructor_id || 'N/A'), cellX, yPosition + 5);
                     cellX += columnConfig[1].width;
                     
-                    // Agent Name
                     doc.text(sanitizeForPDF(agentName), cellX, yPosition + 5);
                     cellX += columnConfig[2].width;
                     
-                    // Student Name
                     doc.text(sanitizeForPDF(checkin.student_name || 'N/A'), cellX, yPosition + 5);
                     cellX += columnConfig[3].width;
                     
-                    // Student ID
                     doc.text(sanitizeForPDF(checkin.student_id || 'N/A'), cellX, yPosition + 5);
                     cellX += columnConfig[4].width;
                     
-                    // Car Plate
                     doc.text(sanitizeForPDF(checkin.car_plate || 'N/A'), cellX, yPosition + 5);
                     cellX += columnConfig[5].width;
                     
-                    // Duration
                     doc.text(checkin.duration ? sanitizeForPDF(checkin.duration + 'h') : 'N/A', cellX, yPosition + 5);
                     cellX += columnConfig[6].width;
                     
-                    // Time Range
                     const timeRange = checkin.start_time && checkin.end_time ? 
                         `${checkin.start_time} - ${checkin.end_time}` : 'N/A';
                     doc.text(sanitizeForPDF(timeRange), cellX, yPosition + 5);
