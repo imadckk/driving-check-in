@@ -2,7 +2,7 @@
  * Admin Report - Driving School
  * Complete rewrite with date range support
  * Malaysia Timezone (UTC+8)
- * Version 2.4 - Fixed PDF generation (no Unicode issues)
+ * Version 2.5 - Fixed PDF bold issue on second page
  */
 
 // ============================================
@@ -416,7 +416,7 @@ function clearFilters() {
 }
 
 // ============================================
-// PDF GENERATION (FIXED - No Unicode issues)
+// PDF GENERATION (FIXED - No bold on second page)
 // ============================================
 
 /**
@@ -535,7 +535,16 @@ function retryPDFGeneration() {
 }
 
 /**
- * Create PDF document - FIXED version with sanitized text
+ * Reset font settings for a new page
+ */
+function resetPageFontSettings(doc) {
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(6);
+    doc.setTextColor(0, 0, 0);
+}
+
+/**
+ * Create PDF document - FIXED version with proper font reset on new pages
  */
 function createPDF() {
     return new Promise((resolve, reject) => {
@@ -620,6 +629,10 @@ function createPDF() {
                 { header: 'Time Range', width: 25 }
             ];
             
+            // Reset font to normal before drawing table
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(7);
+            
             // Draw header
             doc.setFillColor(59, 130, 246);
             doc.rect(margin, yPosition, contentWidth, rowHeight, 'F');
@@ -634,17 +647,24 @@ function createPDF() {
             });
             yPosition += rowHeight;
             
-            // Draw rows
+            // Reset font for data rows
             doc.setFont('helvetica', 'normal');
             doc.setFontSize(6);
+            doc.setTextColor(0, 0, 0);
             
+            // Draw rows
             State.checkins.forEach((checkin, index) => {
                 // Check page break
                 if (yPosition > 270) {
                     doc.addPage();
                     yPosition = 20;
                     
-                    // Redraw header
+                    // IMPORTANT: Reset font settings after adding new page
+                    doc.setFont('helvetica', 'normal');
+                    doc.setFontSize(7);
+                    doc.setTextColor(0, 0, 0);
+                    
+                    // Redraw header on new page
                     doc.setFillColor(59, 130, 246);
                     doc.rect(margin, yPosition, contentWidth, rowHeight, 'F');
                     doc.setFontSize(7);
@@ -657,12 +677,21 @@ function createPDF() {
                         x += col.width;
                     });
                     yPosition += rowHeight;
+                    
+                    // Reset font for data rows on new page
+                    doc.setFont('helvetica', 'normal');
+                    doc.setFontSize(6);
+                    doc.setTextColor(0, 0, 0);
                 }
                 
                 // Row background
                 const isEven = index % 2 === 0;
                 doc.setFillColor(isEven ? 249 : 255, isEven ? 250 : 255, isEven ? 251 : 255);
                 doc.rect(margin, yPosition, contentWidth, rowHeight, 'F');
+                
+                // Reset text color and font for each row (ensure consistency)
+                doc.setFont('helvetica', 'normal');
+                doc.setFontSize(6);
                 doc.setTextColor(0, 0, 0);
                 
                 // Row data - all sanitized
@@ -714,6 +743,7 @@ function createPDF() {
             // --- Page numbers ---
             const pageCount = doc.internal.getNumberOfPages();
             doc.setFontSize(6);
+            doc.setFont('helvetica', 'normal');
             doc.setTextColor(100, 100, 100);
             for (let i = 1; i <= pageCount; i++) {
                 doc.setPage(i);
