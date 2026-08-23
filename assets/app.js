@@ -3,9 +3,10 @@ const SUPABASE_URL = 'https://dorkygsgobhcagtqydjb.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRvcmt5Z3Nnb2JoY2FndHF5ZGpiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjEwOTc0MzcsImV4cCI6MjA3NjY3MzQzN30.bNCo8Ijj2DIr-c34P7U-lb6QK69D8OzO2sCd6SOwaW0';
 
 let pendingCheckins = JSON.parse(localStorage.getItem('pendingCheckins') || '[]');
-let pendingFormData = null; // Store form data when duplicate is detected
-let duplicateCheckTimeout = null; // For debouncing duplicate checks
-let currentDuplicateWarning = null; // Track current duplicate warning
+let pendingFormData = null;
+let duplicateCheckTimeout = null;
+let currentDuplicateWarning = null;
+let agentCache = {}; // Cache for agent names
 
 // Initialize app when page loads
 document.addEventListener('DOMContentLoaded', function() {
@@ -19,10 +20,258 @@ document.addEventListener('DOMContentLoaded', function() {
     initializeSessionToggle();
     initializeDuplicateCheck();
     initializeFormSubmitHandling();
+    initializeAgentCheck();
 
     // Load pending check-ins count
     updatePendingCount();
 });
+
+// ============================================
+// AGENT MANAGEMENT
+// ============================================
+
+/**
+ * Initialize agent checking on instructor ID field
+ */
+function initializeAgentCheck() {
+    const instructorInput = document.getElementById('instructor-id');
+    if (!instructorInput) return;
+    
+    // Check on blur (when user leaves the field)
+    instructorInput.addEventListener('blur', async function() {
+        const instructorId = this.value.trim().toUpperCase();
+        if (instructorId && instructorId.length >= 2) {
+            await checkAndPromptAgent(instructorId);
+        }
+    });
+    
+    // Also check on Enter key
+    instructorInput.addEventListener('keydown', async function(e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            const instructorId = this.value.trim().toUpperCase();
+            if (instructorId && instructorId.length >= 2) {
+                await checkAndPromptAgent(instructorId);
+            }
+        }
+    });
+}
+
+/**
+ * Check if agent exists, if not prompt to add
+ */
+async function checkAndPromptAgent(instructorId) {
+    // Check cache first
+    if (agentCache[instructorId]) {
+        return;
+    }
+    
+    try {
+        const exists = await checkAgentExists(instructorId);
+        if (!exists) {
+            // Show the agent modal
+            showAgentModal(instructorId);
+        } else {
+            // Fetch and cache the agent name
+            await fetchAgentName(instructorId);
+        }
+    } catch (error) {
+        console.error('Error checking agent:', error);
+    }
+}
+
+/**
+ * Check if an agent exists in Supabase
+ */
+async function checkAgentExists(instructorId) {
+    try {
+        const response = await fetch(
+            `${SUPABASE_URL}/rest/v1/agents?instructor_id=eq.${encodeURIComponent(instructorId)}&select=id`,
+            {
+                headers: {
+                    'apikey': SUPABASE_ANON_KEY,
+                    'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+                }
+            }
+        );
+        
+        if (response.ok) {
+            const data = await response.json();
+            return data.length > 0;
+        }
+        return false;
+    } catch (error) {
+        console.error('Error checking agent:', error);
+        return false;
+    }
+}
+
+/**
+ * Fetch agent name from Supabase
+ */
+async function fetchAgentName(instructorId) {
+    try {
+        const response = await fetch(
+            `${SUPABASE_URL}/rest/v1/agents?instructor_id=eq.${encodeURIComponent(instructorId)}&select=agent_name`,
+            {
+                headers: {
+                    'apikey': SUPABASE_ANON_KEY,
+                    'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+                }
+            }
+        );
+        
+        if (response.ok) {
+            const data = await response.json();
+            if (data.length > 0) {
+                agentCache[instructorId] = data[0].agent_name;
+                // Show a subtle confirmation
+                showAgentFoundNotification(instructorId, data[0].agent_name);
+            }
+        }
+    } catch (error) {
+        console.error('Error fetching agent:', error);
+    }
+}
+
+/**
+ * Show agent modal
+ */
+function showAgentModal(instructorId) {
+    const modal = document.getElementById('agent-modal');
+    if (!modal) return;
+    
+    document.getElementById('agent-modal-instructor-id').textContent = instructorId;
+    document.getElementById('agent-modal-input').value = '';
+    document.getElementById('agent-modal-input').focus();
+    
+    modal.classList.remove('hidden');
+    const content = modal.querySelector('.modal-mobile');
+    if (content) {
+        setTimeout(() => content.classList.add('active'), 10);
+    }
+    
+    // Store the instructor ID for later use
+    modal.dataset.instructorId = instructorId;
+}
+
+/**
+ * Close agent modal
+ */
+function closeAgentModal() {
+    const modal = document.getElementById('agent-modal');
+    if (modal) {
+        const content = modal.querySelector('.modal-mobile');
+        if (content) {
+            content.classList.remove('active');
+            setTimeout(() => modal.classList.add('hidden'), 300);
+        } else {
+            modal.classList.add('hidden');
+        }
+    }
+}
+
+/**
+ * Save agent name
+ */
+async function saveAgentName() {
+    const modal = document.getElementById('agent-modal');
+    const instructorId = modal.dataset.instructorId;
+    const agentName = document.getElementById('agent-modal-input').value.trim();
+    
+    if (!agentName) {
+        alert('Please enter the agent name');
+        return;
+    }
+    
+    try {
+        // Save to Supabase
+        const response = await fetch(`${SUPABASE_URL}/rest/v1/agents`, {
+            method: 'POST',
+            headers: {
+                'apikey': SUPABASE_ANON_KEY,
+                'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                instructor_id: instructorId,
+                agent_name: agentName
+            })
+        });
+        
+        if (response.ok) {
+            // Cache the agent name
+            agentCache[instructorId] = agentName;
+            closeAgentModal();
+            
+            // Show success message
+            showAgentSavedNotification(instructorId, agentName);
+        } else {
+            const error = await response.text();
+            throw new Error(error);
+        }
+    } catch (error) {
+        console.error('Error saving agent:', error);
+        alert('Failed to save agent name. Please try again.');
+    }
+}
+
+/**
+ * Show notification that agent was found
+ */
+function showAgentFoundNotification(instructorId, agentName) {
+    // Create a temporary notification
+    const notification = document.createElement('div');
+    notification.className = 'fixed top-20 right-4 z-50 bg-green-100 border-l-4 border-green-500 p-4 rounded-lg shadow-lg transition-all duration-300';
+    notification.innerHTML = `
+        <div class="flex items-center">
+            <svg class="w-5 h-5 text-green-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+            <div>
+                <p class="text-sm font-medium text-green-800">Agent Found</p>
+                <p class="text-xs text-green-700">${agentName}</p>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+        notification.style.opacity = '0';
+        notification.style.transform = 'translateX(100px)';
+        setTimeout(() => notification.remove(), 300);
+    }, 3000);
+}
+
+/**
+ * Show notification that agent was saved
+ */
+function showAgentSavedNotification(instructorId, agentName) {
+    const notification = document.createElement('div');
+    notification.className = 'fixed top-20 right-4 z-50 bg-blue-100 border-l-4 border-blue-500 p-4 rounded-lg shadow-lg transition-all duration-300';
+    notification.innerHTML = `
+        <div class="flex items-center">
+            <svg class="w-5 h-5 text-blue-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+            <div>
+                <p class="text-sm font-medium text-blue-800">Agent Registered</p>
+                <p class="text-xs text-blue-700">${agentName} (${instructorId})</p>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+        notification.style.opacity = '0';
+        notification.style.transform = 'translateX(100px)';
+        setTimeout(() => notification.remove(), 300);
+    }, 3000);
+}
+
+// ============================================
+// EXISTING FUNCTIONS (with minor updates)
+// ============================================
 
 // Function to set car plate display
 function setCarPlate(plate) {
@@ -38,14 +287,13 @@ function setCarPlate(plate) {
     }
 }
 
-// Add after the configuration section
 function formatTimeAMPM(date) {
     let hours = date.getHours();
     let minutes = date.getMinutes();
     const ampm = hours >= 12 ? 'pm' : 'am';
     
     hours = hours % 12;
-    hours = hours ? hours : 12; // the hour '0' should be '12'
+    hours = hours ? hours : 12;
     minutes = minutes < 10 ? '0' + minutes : minutes;
     
     return `${hours}:${minutes} ${ampm}`;
@@ -87,7 +335,6 @@ function updateTotalTimeDisplay() {
     }
 }
 
-// Initialize session toggle
 function initializeSessionToggle() {
     const sessionRadios = document.querySelectorAll('input[name="session"]');
     
@@ -96,7 +343,6 @@ function initializeSessionToggle() {
             console.log('Session selected:', this.value);
         });
         
-        // Add keyboard navigation
         radio.addEventListener('keydown', function(e) {
             if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
                 e.preventDefault();
@@ -110,7 +356,6 @@ function initializeSessionToggle() {
         });
     });
     
-    // Set default to KPP02
     if (!document.querySelector('input[name="session"]:checked')) {
         const kpp02 = document.getElementById('session-kpp02');
         if (kpp02) {
@@ -119,14 +364,12 @@ function initializeSessionToggle() {
     }
 }
 
-// Initialize real-time duplicate checking
 function initializeDuplicateCheck() {
     const studentIdInput = document.getElementById('student-id');
     if (!studentIdInput) return;
     
     const studentIdContainer = studentIdInput.parentElement;
     
-    // Create warning element if it doesn't exist
     if (!document.getElementById('duplicate-warning')) {
         const warningDiv = document.createElement('div');
         warningDiv.id = 'duplicate-warning';
@@ -137,30 +380,25 @@ function initializeDuplicateCheck() {
     studentIdInput.addEventListener('input', function() {
         const studentId = this.value.trim();
         
-        // Clear previous timeout
         if (duplicateCheckTimeout) {
             clearTimeout(duplicateCheckTimeout);
         }
         
-        // Hide warning if input is too short
         if (studentId.length < 4) {
             hideDuplicateWarning();
             return;
         }
         
-        // Debounce: wait 500ms after user stops typing
         duplicateCheckTimeout = setTimeout(async () => {
             await checkAndDisplayDuplicate(studentId);
         }, 500);
     });
 }
 
-// Check for duplicate and display warning
 async function checkAndDisplayDuplicate(studentId) {
     const warningDiv = document.getElementById('duplicate-warning');
     if (!warningDiv) return;
     
-    // Show loading state
     warningDiv.className = 'warning-banner';
     warningDiv.innerHTML = '<span class="text-sm text-gray-600">Checking for duplicates...</span>';
     
@@ -169,7 +407,6 @@ async function checkAndDisplayDuplicate(studentId) {
         
         if (duplicateInfo) {
             currentDuplicateWarning = duplicateInfo;
-            // Show warning with details
             warningDiv.className = 'warning-banner';
             warningDiv.innerHTML = `
                 <div class="flex items-start">
@@ -196,7 +433,6 @@ async function checkAndDisplayDuplicate(studentId) {
     }
 }
 
-// Hide duplicate warning
 function hideDuplicateWarning() {
     const warningDiv = document.getElementById('duplicate-warning');
     if (warningDiv) {
@@ -206,7 +442,6 @@ function hideDuplicateWarning() {
     currentDuplicateWarning = null;
 }
 
-// Initialize form submit handling with loading states
 function initializeFormSubmitHandling() {
     const form = document.getElementById('checkin-form');
     const submitButton = document.getElementById('submit-btn') || form.querySelector('button[type="submit"]');
@@ -216,7 +451,6 @@ function initializeFormSubmitHandling() {
     form.addEventListener('submit', async function(e) {
         e.preventDefault();
         
-        // Disable button and show loading state
         submitButton.disabled = true;
         const originalButtonText = submitButton.innerHTML;
         submitButton.innerHTML = `
@@ -228,15 +462,18 @@ function initializeFormSubmitHandling() {
         `;
         
         try {
-            // Use device's local date and time
             const now = new Date();
             const duration = parseFloat(document.getElementById('duration').value);
             const endTime = calculateEndTime(now, duration);
+            
+            // Get instructor ID and check if agent exists
+            const instructorId = document.getElementById('instructor-id').value.trim().toUpperCase();
+            
             const formData = {
                 car_plate: document.getElementById('car-plate').value,
-                instructor_id: document.getElementById('instructor-id').value,
-                student_name: document.getElementById('student-name').value,
-                student_id: document.getElementById('student-id').value,
+                instructor_id: instructorId,
+                student_name: document.getElementById('student-name').value.trim().toUpperCase(),
+                student_id: document.getElementById('student-id').value.trim().toUpperCase(),
                 session: document.querySelector('input[name="session"]:checked')?.value,
                 duration: duration,
                 start_time: formatTimeAMPM(now),
@@ -244,7 +481,6 @@ function initializeFormSubmitHandling() {
                 timestamp: now.toISOString(),
             };
 
-            // Validate car plate
             if (!formData.car_plate || formData.car_plate === '- - - - -' || formData.car_plate === '---') {
                 showErrorMessage('Please scan the car QR code first');
                 return;
@@ -259,48 +495,99 @@ function initializeFormSubmitHandling() {
                 showErrorMessage('Please select a lesson duration');
                 return;
             }
+            
+            // Check if agent exists and prompt if needed
+            if (instructorId && instructorId.length >= 2) {
+                const exists = await checkAgentExists(instructorId);
+                if (!exists) {
+                    // Show agent modal and wait for completion
+                    await showAgentModalWithPromise(instructorId);
+                } else {
+                    // Cache the agent name
+                    await fetchAgentName(instructorId);
+                }
+            }
 
-            // If duplicate warning is showing, ask for confirmation
             if (currentDuplicateWarning) {
                 pendingFormData = formData;
                 showDuplicateModal();
             } else {
-                // No duplicate, proceed with submission
                 await processCheckin(formData);
             }
         } finally {
-            // Re-enable button and restore original text
             submitButton.disabled = false;
             submitButton.innerHTML = originalButtonText;
         }
     });
 }
 
-// Show error message
+/**
+ * Show agent modal and return a promise that resolves when saved or skipped
+ */
+function showAgentModalWithPromise(instructorId) {
+    return new Promise((resolve) => {
+        const modal = document.getElementById('agent-modal');
+        if (!modal) {
+            resolve();
+            return;
+        }
+        
+        document.getElementById('agent-modal-instructor-id').textContent = instructorId;
+        document.getElementById('agent-modal-input').value = '';
+        document.getElementById('agent-modal-input').focus();
+        
+        modal.classList.remove('hidden');
+        const content = modal.querySelector('.modal-mobile');
+        if (content) {
+            setTimeout(() => content.classList.add('active'), 10);
+        }
+        
+        modal.dataset.instructorId = instructorId;
+        
+        // Store resolve function to be called when modal is closed
+        window._resolveAgentPrompt = resolve;
+    });
+}
+
+// Override closeAgentModal to resolve the promise
+const originalCloseAgentModal = closeAgentModal;
+closeAgentModal = function() {
+    originalCloseAgentModal();
+    if (window._resolveAgentPrompt) {
+        window._resolveAgentPrompt();
+        window._resolveAgentPrompt = null;
+    }
+};
+
+// Override saveAgentName to resolve the promise
+const originalSaveAgentName = saveAgentName;
+saveAgentName = async function() {
+    await originalSaveAgentName();
+    if (window._resolveAgentPrompt) {
+        window._resolveAgentPrompt();
+        window._resolveAgentPrompt = null;
+    }
+};
+
 function showErrorMessage(message) {
-    // Check if using mobile modal style or desktop alert
     let errorModal = document.getElementById('error-modal');
     
     if (errorModal) {
-        // Mobile style - use modal
         const messageEl = document.getElementById('error-message');
         if (messageEl) {
             messageEl.textContent = message;
         }
         errorModal.classList.remove('hidden');
         
-        // If using bottom sheet style, add active class
         const content = errorModal.querySelector('.modal-mobile');
         if (content) {
             setTimeout(() => content.classList.add('active'), 10);
         }
     } else {
-        // Fallback to alert if modal doesn't exist
         alert(message);
     }
 }
 
-// Close error modal
 function closeErrorModal() {
     const errorModal = document.getElementById('error-modal');
     if (errorModal) {
@@ -314,7 +601,6 @@ function closeErrorModal() {
     }
 }
 
-// Check if student already has a check-in today (simple boolean)
 async function checkDuplicateCheckin(studentId) {
     try {
         const today = new Date();
@@ -342,7 +628,6 @@ async function checkDuplicateCheckin(studentId) {
     }
 }
 
-// Check for duplicate with full details for real-time warning
 async function checkDuplicateCheckinWithDetails(studentId) {
     try {
         const today = new Date();
@@ -370,7 +655,6 @@ async function checkDuplicateCheckinWithDetails(studentId) {
     }
 }
 
-// Process check-in (online or offline)
 async function processCheckin(formData) {
     if (navigator.onLine) {
         const success = await submitCheckin(formData);
@@ -380,7 +664,6 @@ async function processCheckin(formData) {
             showErrorMessage('Failed to submit check-in. Please check your connection and try again.');
         }
     } else {
-        // Store for later submission
         pendingCheckins.push(formData);
         localStorage.setItem('pendingCheckins', JSON.stringify(pendingCheckins));
         updatePendingCount();
@@ -388,7 +671,6 @@ async function processCheckin(formData) {
     }
 }
 
-// Submit check-in to Supabase
 async function submitCheckin(data) {
     try {
         const response = await fetch(`${SUPABASE_URL}/rest/v1/check_ins`, {
@@ -407,18 +689,15 @@ async function submitCheckin(data) {
     }
 }
 
-// Get today's check-in history
 async function getTodayCheckins() {
     try {
         const currentCarPlate = document.getElementById('car-plate').value;
         
-        // If no car plate is set, return empty
         if (!currentCarPlate || currentCarPlate === '- - - - -' || currentCarPlate === '---') {
             showErrorMessage('No car plate detected. Please scan the QR code.');
             return [];
         }
         
-        // Get today's date range in local timezone
         const today = new Date();
         const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
         const todayEnd = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
@@ -443,7 +722,6 @@ async function getTodayCheckins() {
     }
 }
 
-// Show history modal
 async function showHistoryModal() {
     const modal = document.getElementById('history-modal');
     const content = document.getElementById('history-content');
@@ -451,14 +729,12 @@ async function showHistoryModal() {
     
     if (!modal || !content) return;
     
-    // Check if car plate is set
     if (!currentCarPlate || currentCarPlate === '- - - - -' || currentCarPlate === '---') {
         content.innerHTML = '<div class="text-center py-8 text-gray-500">Please set a car plate first to view history.</div>';
         modal.classList.remove('hidden');
         return;
     }
     
-    // Show loading state
     content.innerHTML = '<div class="text-center py-8 text-gray-500">Loading history...</div>';
     modal.classList.remove('hidden');
     
@@ -510,7 +786,6 @@ async function showHistoryModal() {
     }
 }
 
-// Close history modal
 function closeHistoryModal() {
     const modal = document.getElementById('history-modal');
     if (modal) {
@@ -518,13 +793,10 @@ function closeHistoryModal() {
     }
 }
 
-// Show duplicate confirmation modal
 function showDuplicateModal() {
     const modal = document.getElementById('duplicate-modal');
     if (modal) {
         modal.classList.remove('hidden');
-        
-        // If using bottom sheet style, add active class
         const content = modal.querySelector('.modal-mobile');
         if (content) {
             setTimeout(() => content.classList.add('active'), 10);
@@ -532,7 +804,6 @@ function showDuplicateModal() {
     }
 }
 
-// Close duplicate modal
 function closeDuplicateModal() {
     const modal = document.getElementById('duplicate-modal');
     if (modal) {
@@ -547,10 +818,8 @@ function closeDuplicateModal() {
     pendingFormData = null;
 }
 
-// Confirm duplicate check-in
 async function confirmDuplicateCheckin() {
     if (pendingFormData) {
-        // Disable the button to prevent double-clicks
         const confirmButton = document.querySelector('#duplicate-modal button[onclick*="confirmDuplicateCheckin"]');
         if (confirmButton) {
             const originalText = confirmButton.innerHTML;
@@ -575,21 +844,17 @@ function showSuccessModal() {
     const modal = document.getElementById('success-modal');
     if (modal) {
         modal.classList.remove('hidden');
-        
-        // If using bottom sheet style, add active class
         const content = modal.querySelector('.modal-mobile');
         if (content) {
             setTimeout(() => content.classList.add('active'), 10);
         }
         
-        // Auto-dismiss after 2 seconds
         setTimeout(() => {
             closeSuccessModal();
         }, 2000);
     }
 }
 
-// Add event listener for duration change
 document.addEventListener('DOMContentLoaded', function() {
     const durationSelect = document.getElementById('duration');
     if (durationSelect) {
@@ -620,26 +885,20 @@ function resetForm() {
         form.reset();
     }
     
-    // Get current car plate before clearing
     const currentCarPlate = document.getElementById('car-plate').value;
     
-    // Keep the car plate in URL parameters
     if (currentCarPlate && currentCarPlate !== '- - - - -' && currentCarPlate !== '---') {
         const newUrl = new URL(window.location);
         newUrl.searchParams.set('car', currentCarPlate);
         window.history.replaceState({}, '', newUrl);
-        
-        // Restore the car plate value
         setCarPlate(currentCarPlate);
     }
     
-    // Reset session to default
     const kpp02 = document.getElementById('session-kpp02');
     if (kpp02) {
         kpp02.checked = true;
     }
     
-    // Clear form fields
     const instructorId = document.getElementById('instructor-id');
     const studentName = document.getElementById('student-name');
     const studentId = document.getElementById('student-id');
@@ -652,22 +911,17 @@ function resetForm() {
     if (totalTimeDisplay) totalTimeDisplay.textContent = 'Select duration to see time range';
     if (timeDisplayContainer) timeDisplayContainer.classList.add('hidden');
     
-    // Hide any duplicate warnings
     hideDuplicateWarning();
-    
     updatePendingCount();
 }
 
 function updatePendingCount() {
-    // You could add a badge showing pending sync count
     const pending = pendingCheckins.length;
     if (pending > 0) {
         console.log(`${pending} check-ins pending sync`);
-        // TODO: Add visual indicator for pending syncs
     }
 }
 
-// Sync pending check-ins when coming online
 window.addEventListener('online', async function() {
     const failed = [];
     
