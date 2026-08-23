@@ -2,7 +2,7 @@
  * Admin Report - Driving School
  * Complete rewrite with date range support
  * Malaysia Timezone (UTC+8)
- * Version 2.1
+ * Version 2.2 - Fixed date filtering
  */
 
 // ============================================
@@ -102,6 +102,48 @@ function getMalaysiaTomorrow() {
 }
 
 /**
+ * Get date range in Malaysia timezone for a specific date
+ * Returns start and end of day in UTC for Supabase query
+ */
+function getMalaysiaDateRange(dateStr) {
+    // Parse the date string in Malaysia timezone
+    const [year, month, day] = dateStr.split('-').map(Number);
+    
+    // Create date in Malaysia timezone
+    const malaysiaDate = new Date(year, month - 1, day);
+    
+    // Convert to UTC for Supabase query
+    // Start of day in Malaysia = 00:00:00 MYT = previous day 16:00:00 UTC
+    const startUTC = new Date(Date.UTC(year, month - 1, day - 1, 16, 0, 0));
+    // End of day in Malaysia = 23:59:59 MYT = current day 15:59:59 UTC
+    const endUTC = new Date(Date.UTC(year, month - 1, day, 15, 59, 59));
+    
+    return {
+        start: startUTC.toISOString(),
+        end: endUTC.toISOString()
+    };
+}
+
+/**
+ * Get date range in Malaysia timezone for a date range
+ */
+function getMalaysiaDateRangeExtended(fromDate, toDate) {
+    const [fromYear, fromMonth, fromDay] = fromDate.split('-').map(Number);
+    const [toYear, toMonth, toDay] = toDate.split('-').map(Number);
+    
+    // Start of from date in Malaysia (00:00:00 MYT)
+    const startUTC = new Date(Date.UTC(fromYear, fromMonth - 1, fromDay - 1, 16, 0, 0));
+    
+    // End of to date in Malaysia (23:59:59 MYT)
+    const endUTC = new Date(Date.UTC(toYear, toMonth - 1, toDay, 15, 59, 59));
+    
+    return {
+        start: startUTC.toISOString(),
+        end: endUTC.toISOString()
+    };
+}
+
+/**
  * Format date to DD-MM-YYYY for display
  */
 function formatDateDisplay(dateString) {
@@ -109,21 +151,6 @@ function formatDateDisplay(dateString) {
     const parts = dateString.split('-');
     if (parts.length === 3) {
         return `${parts[2]}-${parts[1]}-${parts[0]}`; // YYYY-MM-DD to DD-MM-YYYY
-    }
-    return dateString;
-}
-
-/**
- * Format date from DD-MM-YYYY to YYYY-MM-DD for API queries
- */
-function formatDateForAPI(dateString) {
-    if (!dateString) return '';
-    const parts = dateString.split('-');
-    if (parts.length === 3) {
-        // Check if it's already YYYY-MM-DD
-        if (parts[0].length === 4) return dateString;
-        // Convert from DD-MM-YYYY to YYYY-MM-DD
-        return `${parts[2]}-${parts[1]}-${parts[0]}`;
     }
     return dateString;
 }
@@ -158,18 +185,6 @@ function formatToLocalDate(isoString) {
     const year = malaysiaTime.getFullYear();
     
     return `${day}/${month}/${year}`;
-}
-
-/**
- * Format date for display in DD-MM-YYYY
- */
-function formatDateForDisplay(dateStr) {
-    if (!dateStr) return '';
-    const parts = dateStr.split('-');
-    if (parts.length === 3 && parts[0].length === 4) {
-        return `${parts[2]}-${parts[1]}-${parts[0]}`;
-    }
-    return dateStr;
 }
 
 // ============================================
@@ -252,63 +267,38 @@ function initDateMode() {
     DOM.dateFrom.value = today;
     DOM.dateTo.value = getMalaysiaTomorrow();
     
-    // Update display labels with DD-MM-YYYY format
-    updateDateLabels();
-    
     // Apply toggle
     toggleDateMode();
 }
 
-/**
- * Update date labels to show DD-MM-YYYY format
- */
-function updateDateLabels() {
-    // Update date filter label
-    const dateFilterLabel = document.querySelector('label[for="date-filter"]');
-    if (dateFilterLabel) {
-        dateFilterLabel.textContent = 'Date (DD-MM-YYYY)';
-    }
-    
-    // Update date range labels
-    const fromLabel = document.querySelector('label[for="date-from"]');
-    const toLabel = document.querySelector('label[for="date-to"]');
-    if (fromLabel) fromLabel.textContent = 'From (DD-MM-YYYY)';
-    if (toLabel) toLabel.textContent = 'To (DD-MM-YYYY)';
-}
-
 // ============================================
-// DATA LOADING
+// DATA LOADING (FIXED DATE FILTERING)
 // ============================================
 
 /**
  * Build the Supabase query URL with filters
+ * Fixed to properly handle Malaysia timezone
  */
 function buildQueryURL() {
     let url = `${CONFIG.SUPABASE_URL}/rest/v1/check_ins?select=*&order=timestamp.desc`;
     const mode = getDateMode();
     
-    // Date filtering (using Malaysia timezone)
+    // Date filtering with Malaysia timezone
     if (mode === 'single') {
         const dateVal = DOM.dateFilter.value;
         if (dateVal) {
-            // Convert date to Malaysia timezone start/end
-            const startDate = new Date(dateVal + 'T00:00:00');
-            const endDate = new Date(dateVal + 'T23:59:59');
-            
-            // Adjust to Malaysia timezone
-            const startStr = startDate.toISOString().split('T')[0];
-            const endStr = endDate.toISOString().split('T')[0];
-            
-            url += `&timestamp=gte.${startStr}T00:00:00&timestamp=lt.${endStr}T23:59:59`;
+            // Get Malaysia timezone date range
+            const range = getMalaysiaDateRange(dateVal);
+            // Use ISO strings for Supabase query
+            url += `&timestamp=gte.${range.start}&timestamp=lt.${range.end}`;
         }
     } else {
         const from = DOM.dateFrom.value;
         const to = DOM.dateTo.value;
-        if (from) {
-            url += `&timestamp=gte.${from}T00:00:00`;
-        }
-        if (to) {
-            url += `&timestamp=lt.${to}T23:59:59`;
+        if (from && to) {
+            // Get Malaysia timezone date range for the period
+            const range = getMalaysiaDateRangeExtended(from, to);
+            url += `&timestamp=gte.${range.start}&timestamp=lt.${range.end}`;
         }
     }
     
@@ -321,6 +311,7 @@ function buildQueryURL() {
     if (car) url += `&car_plate=eq.${encodeURIComponent(car)}`;
     if (session) url += `&session=eq.${encodeURIComponent(session)}`;
     
+    console.log('Query URL:', url); // Debug log
     return url;
 }
 
@@ -363,6 +354,12 @@ async function loadCheckins() {
             second: '2-digit',
             hour12: true
         });
+        
+        // Log the number of records and their dates for debugging
+        console.log(`Loaded ${State.checkins.length} records`);
+        if (State.checkins.length > 0) {
+            console.log('Sample timestamps:', State.checkins.slice(0, 3).map(c => c.timestamp));
+        }
         
     } catch (error) {
         console.error('Error loading check-ins:', error);
@@ -522,7 +519,7 @@ function clearFilters() {
 }
 
 // ============================================
-// PDF GENERATION
+// PDF GENERATION (unchanged)
 // ============================================
 
 /**
@@ -534,7 +531,6 @@ function generatePDFPreview() {
         return;
     }
     
-    // Show modal with loading state
     DOM.pdfModal.classList.remove('hidden');
     DOM.pdfContent.innerHTML = `
         <div class="flex items-center justify-center h-full">
@@ -587,7 +583,7 @@ function createPDF() {
         doc.setTextColor(PDF_COLORS.title[0], PDF_COLORS.title[1], PDF_COLORS.title[2]);
         doc.text('Driving Lesson Check-In Report', margin, 20);
         
-        // --- Filter info (with Malaysia timezone) ---
+        // --- Filter info ---
         doc.setFontSize(8);
         doc.setFont('helvetica', 'normal');
         doc.setTextColor(100, 100, 100);
@@ -608,12 +604,12 @@ function createPDF() {
         const mode = getDateMode();
         if (mode === 'single') {
             const d = DOM.dateFilter.value;
-            if (d) filterText += ` | Date: ${formatDateForDisplay(d)}`;
+            if (d) filterText += ` | Date: ${formatDateDisplay(d)}`;
         } else {
             const from = DOM.dateFrom.value;
             const to = DOM.dateTo.value;
-            if (from) filterText += ` | From: ${formatDateForDisplay(from)}`;
-            if (to) filterText += ` | To: ${formatDateForDisplay(to)}`;
+            if (from) filterText += ` | From: ${formatDateDisplay(from)}`;
+            if (to) filterText += ` | To: ${formatDateDisplay(to)}`;
         }
         
         const instr = DOM.instructorFilter.value;
