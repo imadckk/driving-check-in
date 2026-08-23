@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Admin Report - Driving School</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- jsPDF CDN -->
+    <!-- jsPDF CDN - Fixed loading order -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js">
     </script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js">
@@ -74,7 +74,7 @@
 
         <!-- SINGLE DATE -->
         <div id="single-date-group" class="col-span-1 md:col-span-1">
-            <label class="block text-gray-700 text-sm font-medium mb-2">Date</label>
+            <label class="block text-gray-700 text-sm font-medium mb-2">Date (DD-MM-YYYY)</label>
             <input type="date" id="date-filter"
             class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 uppercase" />
         </div>
@@ -83,12 +83,12 @@
         <div id="date-range-group" class="col-span-1 md:col-span-2 date-range-fields hidden">
             <div class="grid grid-cols-2 gap-2">
                 <div>
-                    <label class="block text-gray-700 text-sm font-medium mb-2">From</label>
+                    <label class="block text-gray-700 text-sm font-medium mb-2">From (DD-MM-YYYY)</label>
                     <input type="date" id="date-from"
                     class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 uppercase" />
                 </div>
                 <div>
-                    <label class="block text-gray-700 text-sm font-medium mb-2">To</label>
+                    <label class="block text-gray-700 text-sm font-medium mb-2">To (DD-MM-YYYY)</label>
                     <input type="date" id="date-to"
                     class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 uppercase" />
                 </div>
