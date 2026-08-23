@@ -2,7 +2,7 @@
  * Admin Report - Driving School
  * Complete rewrite with date range support
  * Malaysia Timezone (UTC+8)
- * Version 2.3 - Fixed PDF generation
+ * Version 2.4 - Fixed PDF generation (no Unicode issues)
  */
 
 // ============================================
@@ -135,6 +135,22 @@ function formatToLocalDate(isoString) {
     const month = String(malaysiaTime.getMonth() + 1).padStart(2, '0');
     const year = malaysiaTime.getFullYear();
     return `${day}/${month}/${year}`;
+}
+
+/**
+ * Sanitize text for PDF - removes special characters that might cause issues
+ */
+function sanitizeForPDF(text) {
+    if (text == null) return 'N/A';
+    // Convert to string and remove any non-printable characters
+    let clean = String(text);
+    // Replace common problematic characters
+    clean = clean.replace(/[^\x20-\x7E]/g, '');
+    // Truncate if too long
+    if (clean.length > 50) {
+        clean = clean.substring(0, 47) + '...';
+    }
+    return clean || 'N/A';
 }
 
 function escapeHtml(unsafe) {
@@ -400,7 +416,7 @@ function clearFilters() {
 }
 
 // ============================================
-// PDF GENERATION (FIXED)
+// PDF GENERATION (FIXED - No Unicode issues)
 // ============================================
 
 /**
@@ -417,7 +433,6 @@ function getJsPDF() {
     if (isJsPDFLoaded()) {
         return window.jspdf.jsPDF;
     }
-    // Try alternate loading method
     if (typeof jsPDF !== 'undefined') {
         return jsPDF;
     }
@@ -438,7 +453,6 @@ async function generatePDFPreview() {
         console.error('jsPDF library not loaded');
         alert('PDF library is still loading. Please wait a moment and try again.');
         
-        // Try to load the library dynamically
         try {
             await loadJsPDFLibrary();
         } catch (error) {
@@ -500,7 +514,6 @@ function loadJsPDFLibrary() {
         const script = document.createElement('script');
         script.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
         script.onload = () => {
-            // Check if loaded
             if (isJsPDFLoaded()) {
                 resolve();
             } else {
@@ -522,7 +535,7 @@ function retryPDFGeneration() {
 }
 
 /**
- * Create PDF document
+ * Create PDF document - FIXED version with sanitized text
  */
 function createPDF() {
     return new Promise((resolve, reject) => {
@@ -537,12 +550,11 @@ function createPDF() {
             const pageWidth = doc.internal.pageSize.getWidth();
             const margin = 15;
             const contentWidth = pageWidth - (margin * 2);
-            const { PDF_COLORS, TABLE_COLUMNS } = CONFIG;
             
             // --- Title ---
             doc.setFontSize(16);
             doc.setFont('helvetica', 'bold');
-            doc.setTextColor(PDF_COLORS.title[0], PDF_COLORS.title[1], PDF_COLORS.title[2]);
+            doc.setTextColor(31, 41, 55);
             doc.text('Driving Lesson Check-In Report', margin, 20);
             
             // --- Filter info ---
@@ -580,10 +592,13 @@ function createPDF() {
             if (instr) filterText += ` | Instructor: ${instr}`;
             if (car) filterText += ` | Car: ${car}`;
             if (sess) filterText += ` | Session: ${sess}`;
+            
+            // Sanitize filter text
+            filterText = sanitizeForPDF(filterText);
             doc.text(filterText, margin, 28);
             
             // --- Summary box ---
-            doc.setFillColor(PDF_COLORS.summary[0], PDF_COLORS.summary[1], PDF_COLORS.summary[2]);
+            doc.setFillColor(59, 130, 246);
             doc.rect(margin, 33, 50, 8, 'F');
             doc.setFontSize(9);
             doc.setFont('helvetica', 'bold');
@@ -594,15 +609,26 @@ function createPDF() {
             const rowHeight = 8;
             let yPosition = 50;
             
+            const columnConfig = [
+                { header: 'Date', width: 22 },
+                { header: 'Session', width: 12 },
+                { header: 'Instructor', width: 18 },
+                { header: 'Student', width: 39 },
+                { header: 'Student ID', width: 25 },
+                { header: 'Car Plate', width: 18 },
+                { header: 'Duration', width: 15 },
+                { header: 'Time Range', width: 25 }
+            ];
+            
             // Draw header
-            doc.setFillColor(PDF_COLORS.headerBg[0], PDF_COLORS.headerBg[1], PDF_COLORS.headerBg[2]);
+            doc.setFillColor(59, 130, 246);
             doc.rect(margin, yPosition, contentWidth, rowHeight, 'F');
             doc.setFontSize(7);
             doc.setFont('helvetica', 'bold');
-            doc.setTextColor(PDF_COLORS.headerText[0], PDF_COLORS.headerText[1], PDF_COLORS.headerText[2]);
+            doc.setTextColor(255, 255, 255);
             
             let xPos = margin + 1;
-            TABLE_COLUMNS.forEach(col => {
+            columnConfig.forEach(col => {
                 doc.text(col.header, xPos, yPosition + 5);
                 xPos += col.width;
             });
@@ -619,14 +645,14 @@ function createPDF() {
                     yPosition = 20;
                     
                     // Redraw header
-                    doc.setFillColor(PDF_COLORS.headerBg[0], PDF_COLORS.headerBg[1], PDF_COLORS.headerBg[2]);
+                    doc.setFillColor(59, 130, 246);
                     doc.rect(margin, yPosition, contentWidth, rowHeight, 'F');
                     doc.setFontSize(7);
                     doc.setFont('helvetica', 'bold');
-                    doc.setTextColor(PDF_COLORS.headerText[0], PDF_COLORS.headerText[1], PDF_COLORS.headerText[2]);
+                    doc.setTextColor(255, 255, 255);
                     
                     let x = margin + 1;
-                    TABLE_COLUMNS.forEach(col => {
+                    columnConfig.forEach(col => {
                         doc.text(col.header, x, yPosition + 5);
                         x += col.width;
                     });
@@ -635,36 +661,52 @@ function createPDF() {
                 
                 // Row background
                 const isEven = index % 2 === 0;
-                doc.setFillColor(isEven ? PDF_COLORS.evenRowBg : PDF_COLORS.oddRowBg);
+                doc.setFillColor(isEven ? 249 : 255, isEven ? 250 : 255, isEven ? 251 : 255);
                 doc.rect(margin, yPosition, contentWidth, rowHeight, 'F');
-                doc.setTextColor(PDF_COLORS.text[0], PDF_COLORS.text[1], PDF_COLORS.text[2]);
+                doc.setTextColor(0, 0, 0);
                 
-                // Row data
+                // Row data - all sanitized
                 let cellX = margin + 1;
-                doc.text(formatToLocalDate(checkin.timestamp), cellX, yPosition + 5);
-                cellX += TABLE_COLUMNS[0].width;
                 
-                doc.text(checkin.session || 'N/A', cellX, yPosition + 5);
-                cellX += TABLE_COLUMNS[1].width;
+                // Date
+                const dateText = sanitizeForPDF(formatToLocalDate(checkin.timestamp));
+                doc.text(dateText, cellX, yPosition + 5);
+                cellX += columnConfig[0].width;
                 
-                doc.text(checkin.instructor_id || 'N/A', cellX, yPosition + 5);
-                cellX += TABLE_COLUMNS[2].width;
+                // Session
+                const sessionText = sanitizeForPDF(checkin.session || 'N/A');
+                doc.text(sessionText, cellX, yPosition + 5);
+                cellX += columnConfig[1].width;
                 
-                doc.text(checkin.student_name || 'N/A', cellX, yPosition + 5);
-                cellX += TABLE_COLUMNS[3].width;
+                // Instructor
+                const instructorText = sanitizeForPDF(checkin.instructor_id || 'N/A');
+                doc.text(instructorText, cellX, yPosition + 5);
+                cellX += columnConfig[2].width;
                 
-                doc.text(checkin.student_id || 'N/A', cellX, yPosition + 5);
-                cellX += TABLE_COLUMNS[4].width;
+                // Student Name
+                const studentNameText = sanitizeForPDF(checkin.student_name || 'N/A');
+                doc.text(studentNameText, cellX, yPosition + 5);
+                cellX += columnConfig[3].width;
                 
-                doc.text(checkin.car_plate || 'N/A', cellX, yPosition + 5);
-                cellX += TABLE_COLUMNS[5].width;
+                // Student ID
+                const studentIdText = sanitizeForPDF(checkin.student_id || 'N/A');
+                doc.text(studentIdText, cellX, yPosition + 5);
+                cellX += columnConfig[4].width;
                 
-                doc.text(checkin.duration ? checkin.duration + 'h' : 'N/A', cellX, yPosition + 5);
-                cellX += TABLE_COLUMNS[6].width;
+                // Car Plate
+                const carPlateText = sanitizeForPDF(checkin.car_plate || 'N/A');
+                doc.text(carPlateText, cellX, yPosition + 5);
+                cellX += columnConfig[5].width;
                 
-                const timeRange = checkin.start_time && checkin.end_time ? 
-                    `${checkin.start_time} - ${checkin.end_time}` : 'N/A';
-                doc.text(timeRange, cellX, yPosition + 5);
+                // Duration
+                const durationText = checkin.duration ? sanitizeForPDF(checkin.duration + 'h') : 'N/A';
+                doc.text(durationText, cellX, yPosition + 5);
+                cellX += columnConfig[6].width;
+                
+                // Time Range
+                const timeRangeText = checkin.start_time && checkin.end_time ? 
+                    sanitizeForPDF(`${checkin.start_time} - ${checkin.end_time}`) : 'N/A';
+                doc.text(timeRangeText, cellX, yPosition + 5);
                 
                 yPosition += rowHeight;
             });
@@ -736,7 +778,6 @@ function init() {
         }
     }, 100);
     
-    // Timeout after 5 seconds
     setTimeout(() => {
         clearInterval(checkLibraries);
         if (!State.pdfLibraryLoaded) {
