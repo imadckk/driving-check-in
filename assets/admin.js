@@ -1,7 +1,8 @@
 /**
  * Admin Report - Driving School
  * Complete rewrite with date range support
- * Version 2.0
+ * Malaysia Timezone (UTC+8)
+ * Version 2.1
  */
 
 // ============================================
@@ -11,6 +12,8 @@ const CONFIG = {
     SUPABASE_URL: 'https://dorkygsgobhcagtqydjb.supabase.co',
     SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRvcmt5Z3Nnb2JoY2FndHF5ZGpiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjEwOTc0MzcsImV4cCI6MjA3NjY3MzQzN30.bNCo8Ijj2DIr-c34P7U-lb6QK69D8OzO2sCd6SOwaW0',
     AUTO_REFRESH_INTERVAL: 30000, // 30 seconds
+    TIMEZONE: 'Asia/Kuala_Lumpur', // Malaysia timezone
+    DATE_FORMAT: 'DD-MM-YYYY',
     TABLE_COLUMNS: [
         { header: 'Date', width: 22 },
         { header: 'Session', width: 12 },
@@ -76,50 +79,102 @@ const DOM = {
 };
 
 // ============================================
-// UTILITY FUNCTIONS
+// TIMEZONE UTILITY FUNCTIONS
 // ============================================
 
 /**
- * Get today's date in YYYY-MM-DD format
+ * Get current date in Malaysia timezone (YYYY-MM-DD format for input fields)
  */
-function getToday() {
-    return new Date().toISOString().split('T')[0];
+function getMalaysiaDate() {
+    const now = new Date();
+    const malaysiaTime = new Date(now.toLocaleString('en-US', { timeZone: CONFIG.TIMEZONE }));
+    return malaysiaTime.toISOString().split('T')[0];
 }
 
 /**
- * Get tomorrow's date in YYYY-MM-DD format
+ * Get tomorrow's date in Malaysia timezone (YYYY-MM-DD format)
  */
-function getTomorrow() {
-    const date = new Date();
-    date.setDate(date.getDate() + 1);
-    return date.toISOString().split('T')[0];
+function getMalaysiaTomorrow() {
+    const now = new Date();
+    const malaysiaTime = new Date(now.toLocaleString('en-US', { timeZone: CONFIG.TIMEZONE }));
+    malaysiaTime.setDate(malaysiaTime.getDate() + 1);
+    return malaysiaTime.toISOString().split('T')[0];
 }
 
 /**
- * Format ISO timestamp to local date/time string
+ * Format date to DD-MM-YYYY for display
+ */
+function formatDateDisplay(dateString) {
+    if (!dateString) return '';
+    const parts = dateString.split('-');
+    if (parts.length === 3) {
+        return `${parts[2]}-${parts[1]}-${parts[0]}`; // YYYY-MM-DD to DD-MM-YYYY
+    }
+    return dateString;
+}
+
+/**
+ * Format date from DD-MM-YYYY to YYYY-MM-DD for API queries
+ */
+function formatDateForAPI(dateString) {
+    if (!dateString) return '';
+    const parts = dateString.split('-');
+    if (parts.length === 3) {
+        // Check if it's already YYYY-MM-DD
+        if (parts[0].length === 4) return dateString;
+        // Convert from DD-MM-YYYY to YYYY-MM-DD
+        return `${parts[2]}-${parts[1]}-${parts[0]}`;
+    }
+    return dateString;
+}
+
+/**
+ * Format ISO timestamp to local date/time with Malaysia timezone
  */
 function formatToLocalDateTime(isoString) {
     const date = new Date(isoString);
-    const day = String(date.getDate()).padStart(2, '0');
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const year = date.getFullYear();
-    let hours = date.getHours();
-    const minutes = String(date.getMinutes()).padStart(2, '0');
+    const malaysiaTime = new Date(date.toLocaleString('en-US', { timeZone: CONFIG.TIMEZONE }));
+    
+    const day = String(malaysiaTime.getDate()).padStart(2, '0');
+    const month = String(malaysiaTime.getMonth() + 1).padStart(2, '0');
+    const year = malaysiaTime.getFullYear();
+    let hours = malaysiaTime.getHours();
+    const minutes = String(malaysiaTime.getMinutes()).padStart(2, '0');
     const ampm = hours >= 12 ? 'PM' : 'AM';
     hours = hours % 12 || 12;
+    
     return `${day}/${month}/${year} ${String(hours).padStart(2, '0')}:${minutes} ${ampm}`;
 }
 
 /**
- * Format ISO timestamp to date only (DD/MM/YYYY)
+ * Format ISO timestamp to date only (DD/MM/YYYY) with Malaysia timezone
  */
 function formatToLocalDate(isoString) {
     const date = new Date(isoString);
-    const day = String(date.getDate()).padStart(2, '0');
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const year = date.getFullYear();
+    const malaysiaTime = new Date(date.toLocaleString('en-US', { timeZone: CONFIG.TIMEZONE }));
+    
+    const day = String(malaysiaTime.getDate()).padStart(2, '0');
+    const month = String(malaysiaTime.getMonth() + 1).padStart(2, '0');
+    const year = malaysiaTime.getFullYear();
+    
     return `${day}/${month}/${year}`;
 }
+
+/**
+ * Format date for display in DD-MM-YYYY
+ */
+function formatDateForDisplay(dateStr) {
+    if (!dateStr) return '';
+    const parts = dateStr.split('-');
+    if (parts.length === 3 && parts[0].length === 4) {
+        return `${parts[2]}-${parts[1]}-${parts[0]}`;
+    }
+    return dateStr;
+}
+
+// ============================================
+// UTILITY FUNCTIONS
+// ============================================
 
 /**
  * Escape HTML special characters
@@ -166,17 +221,17 @@ function toggleDateMode() {
     DOM.singleDateGroup.classList.toggle('hidden', !isSingle);
     DOM.dateRangeGroup.classList.toggle('hidden', isSingle);
     
-    // Set defaults if empty
+    // Set defaults if empty (using Malaysia timezone)
     if (isSingle) {
         if (!DOM.dateFilter.value) {
-            DOM.dateFilter.value = getToday();
+            DOM.dateFilter.value = getMalaysiaDate();
         }
     } else {
         if (!DOM.dateFrom.value) {
-            DOM.dateFrom.value = getToday();
+            DOM.dateFrom.value = getMalaysiaDate();
         }
         if (!DOM.dateTo.value) {
-            DOM.dateTo.value = getTomorrow();
+            DOM.dateTo.value = getMalaysiaTomorrow();
         }
     }
     
@@ -191,14 +246,34 @@ function initDateMode() {
     // Set default to single mode
     document.querySelector('input[name="dateMode"][value="single"]').checked = true;
     
-    // Set default dates
-    const today = getToday();
+    // Set default dates (Malaysia timezone)
+    const today = getMalaysiaDate();
     DOM.dateFilter.value = today;
     DOM.dateFrom.value = today;
-    DOM.dateTo.value = getTomorrow();
+    DOM.dateTo.value = getMalaysiaTomorrow();
+    
+    // Update display labels with DD-MM-YYYY format
+    updateDateLabels();
     
     // Apply toggle
     toggleDateMode();
+}
+
+/**
+ * Update date labels to show DD-MM-YYYY format
+ */
+function updateDateLabels() {
+    // Update date filter label
+    const dateFilterLabel = document.querySelector('label[for="date-filter"]');
+    if (dateFilterLabel) {
+        dateFilterLabel.textContent = 'Date (DD-MM-YYYY)';
+    }
+    
+    // Update date range labels
+    const fromLabel = document.querySelector('label[for="date-from"]');
+    const toLabel = document.querySelector('label[for="date-to"]');
+    if (fromLabel) fromLabel.textContent = 'From (DD-MM-YYYY)';
+    if (toLabel) toLabel.textContent = 'To (DD-MM-YYYY)';
 }
 
 // ============================================
@@ -212,14 +287,19 @@ function buildQueryURL() {
     let url = `${CONFIG.SUPABASE_URL}/rest/v1/check_ins?select=*&order=timestamp.desc`;
     const mode = getDateMode();
     
-    // Date filtering
+    // Date filtering (using Malaysia timezone)
     if (mode === 'single') {
         const dateVal = DOM.dateFilter.value;
         if (dateVal) {
-            const nextDay = new Date(dateVal);
-            nextDay.setDate(nextDay.getDate() + 1);
-            const nextDayStr = nextDay.toISOString().split('T')[0];
-            url += `&timestamp=gte.${dateVal}T00:00:00&timestamp=lt.${nextDayStr}T00:00:00`;
+            // Convert date to Malaysia timezone start/end
+            const startDate = new Date(dateVal + 'T00:00:00');
+            const endDate = new Date(dateVal + 'T23:59:59');
+            
+            // Adjust to Malaysia timezone
+            const startStr = startDate.toISOString().split('T')[0];
+            const endStr = endDate.toISOString().split('T')[0];
+            
+            url += `&timestamp=gte.${startStr}T00:00:00&timestamp=lt.${endStr}T23:59:59`;
         }
     } else {
         const from = DOM.dateFrom.value;
@@ -228,10 +308,7 @@ function buildQueryURL() {
             url += `&timestamp=gte.${from}T00:00:00`;
         }
         if (to) {
-            const nextDay = new Date(to);
-            nextDay.setDate(nextDay.getDate() + 1);
-            const nextDayStr = nextDay.toISOString().split('T')[0];
-            url += `&timestamp=lt.${nextDayStr}T00:00:00`;
+            url += `&timestamp=lt.${to}T23:59:59`;
         }
     }
     
@@ -272,7 +349,20 @@ async function loadCheckins() {
         State.checkins = await response.json();
         renderCheckins();
         updateStats();
-        DOM.lastUpdated.textContent = new Date().toLocaleString();
+        
+        // Update last updated with Malaysia time
+        const now = new Date();
+        const malaysiaTime = new Date(now.toLocaleString('en-US', { timeZone: CONFIG.TIMEZONE }));
+        DOM.lastUpdated.textContent = malaysiaTime.toLocaleString('en-US', {
+            timeZone: CONFIG.TIMEZONE,
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+            hour12: true
+        });
         
     } catch (error) {
         console.error('Error loading check-ins:', error);
@@ -422,10 +512,10 @@ function clearFilters() {
     
     // Reset date mode to single
     document.querySelector('input[name="dateMode"][value="single"]').checked = true;
-    const today = getToday();
+    const today = getMalaysiaDate();
     DOM.dateFilter.value = today;
     DOM.dateFrom.value = today;
-    DOM.dateTo.value = getTomorrow();
+    DOM.dateTo.value = getMalaysiaTomorrow();
     
     // Apply toggle and reload
     toggleDateMode();
@@ -497,21 +587,33 @@ function createPDF() {
         doc.setTextColor(PDF_COLORS.title[0], PDF_COLORS.title[1], PDF_COLORS.title[2]);
         doc.text('Driving Lesson Check-In Report', margin, 20);
         
-        // --- Filter info ---
+        // --- Filter info (with Malaysia timezone) ---
         doc.setFontSize(8);
         doc.setFont('helvetica', 'normal');
         doc.setTextColor(100, 100, 100);
-        let filterText = `Generated: ${new Date().toLocaleString()}`;
+        
+        const now = new Date();
+        const malaysiaTime = new Date(now.toLocaleString('en-US', { timeZone: CONFIG.TIMEZONE }));
+        let filterText = `Generated: ${malaysiaTime.toLocaleString('en-US', {
+            timeZone: CONFIG.TIMEZONE,
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+            hour12: true
+        })} (Malaysia Time)`;
         
         const mode = getDateMode();
         if (mode === 'single') {
             const d = DOM.dateFilter.value;
-            if (d) filterText += ` | Date: ${d}`;
+            if (d) filterText += ` | Date: ${formatDateForDisplay(d)}`;
         } else {
             const from = DOM.dateFrom.value;
             const to = DOM.dateTo.value;
-            if (from) filterText += ` | From: ${from}`;
-            if (to) filterText += ` | To: ${to}`;
+            if (from) filterText += ` | From: ${formatDateForDisplay(from)}`;
+            if (to) filterText += ` | To: ${formatDateForDisplay(to)}`;
         }
         
         const instr = DOM.instructorFilter.value;
@@ -630,7 +732,7 @@ function downloadPDF() {
         alert('No PDF generated yet');
         return;
     }
-    const fileName = `driving-lessons-report-${getToday()}.pdf`;
+    const fileName = `driving-lessons-report-${getMalaysiaDate()}.pdf`;
     State.currentPDF.save(fileName);
     closePDFPreview();
 }
@@ -681,7 +783,7 @@ function stopAutoRefresh() {
  * Initialize the application
  */
 function init() {
-    // Initialize date mode
+    // Initialize date mode with Malaysia timezone
     initDateMode();
     
     // Set up uppercase conversion on text inputs
@@ -702,7 +804,8 @@ function init() {
     // Start auto-refresh
     startAutoRefresh();
     
-    console.log('Admin Report initialized successfully');
+    console.log('Admin Report initialized successfully (Malaysia Timezone)');
+    console.log(`Timezone: ${CONFIG.TIMEZONE}`);
     console.log(`Auto-refresh interval: ${CONFIG.AUTO_REFRESH_INTERVAL / 1000} seconds`);
 }
 
