@@ -443,6 +443,45 @@
         </div>
     </div>
 
+    <!-- Agent Name Modal (Bottom Sheet) -->
+    <div id="agent-modal" class="fixed inset-0 bg-black/50 modal-backdrop hidden z-50" onclick="if(event.target === this) closeAgentModal()">
+        <div class="modal-mobile" id="agent-modal-content">
+            <div class="text-center">
+                <div class="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <svg class="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                    </svg>
+                </div>
+                <h3 class="text-xl font-bold text-gray-900 mb-2">New Instructor Detected</h3>
+                <p class="text-gray-600 mb-4">
+                    Instructor ID: <span id="agent-modal-instructor-id" class="font-bold text-blue-600"></span>
+                </p>
+                <p class="text-gray-500 text-sm mb-4">Please enter the agent's full name:</p>
+                
+                <div class="mb-6">
+                    <input type="text" 
+                           id="agent-modal-input" 
+                           class="input-mobile text-center"
+                           placeholder="Enter agent name"
+                           autocomplete="off"
+                           autocapitalize="words"
+                           maxlength="100">
+                </div>
+                
+                <div class="grid grid-cols-2 gap-3">
+                    <button onclick="closeAgentModal()" 
+                            class="py-3 px-4 bg-gray-200 text-gray-800 font-semibold rounded-lg hover:bg-gray-300 transition-colors">
+                        Skip
+                    </button>
+                    <button onclick="saveAgentName()" 
+                            class="py-3 px-4 bg-[#290C73] text-white font-semibold rounded-lg hover:bg-[#1e0854] transition-colors">
+                        Save Agent
+                    </button>
+                </div>
+                <p class="text-xs text-gray-400 mt-3">This will only be asked once per instructor</p>
+            </div>
+        </div>
+    </div>
     <script src="assets/app.js"></script>
     <script>
         // Activate modals with animation
