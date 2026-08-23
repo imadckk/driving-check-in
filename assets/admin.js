@@ -55,15 +55,36 @@ const DOM = {
 
 function getMalaysiaDate() {
     const now = new Date();
-    const malaysiaTime = new Date(now.toLocaleString('en-US', { timeZone: CONFIG.TIMEZONE }));
-    return malaysiaTime.toISOString().split('T')[0];
+    // Use Intl.DateTimeFormat to get the date in Malaysia timezone
+    const formatter = new Intl.DateTimeFormat('en-CA', {
+        timeZone: CONFIG.TIMEZONE,
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+    });
+    const parts = formatter.formatToParts(now);
+    const year = parts.find(p => p.type === 'year').value;
+    const month = parts.find(p => p.type === 'month').value;
+    const day = parts.find(p => p.type === 'day').value;
+    return `${year}-${month}-${day}`;
 }
 
 function getMalaysiaTomorrow() {
     const now = new Date();
-    const malaysiaTime = new Date(now.toLocaleString('en-US', { timeZone: CONFIG.TIMEZONE }));
-    malaysiaTime.setDate(malaysiaTime.getDate() + 1);
-    return malaysiaTime.toISOString().split('T')[0];
+    const tomorrow = new Date(now);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    
+    const formatter = new Intl.DateTimeFormat('en-CA', {
+        timeZone: CONFIG.TIMEZONE,
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+    });
+    const parts = formatter.formatToParts(tomorrow);
+    const year = parts.find(p => p.type === 'year').value;
+    const month = parts.find(p => p.type === 'month').value;
+    const day = parts.find(p => p.type === 'day').value;
+    return `${year}-${month}-${day}`;
 }
 
 /**
