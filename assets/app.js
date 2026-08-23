@@ -70,7 +70,7 @@ async function checkAndPromptAgent(instructorId) {
         const exists = await checkAgentExists(instructorId);
         if (!exists) {
             // Show the agent modal
-            showAgentModal(instructorId);
+            await showAgentModalWithPromise(instructorId);
         } else {
             // Fetch and cache the agent name
             await fetchAgentName(instructorId);
@@ -135,28 +135,44 @@ async function fetchAgentName(instructorId) {
 }
 
 /**
- * Show agent modal
+ * Show agent modal and return a promise that resolves when saved
  */
-function showAgentModal(instructorId) {
-    const modal = document.getElementById('agent-modal');
-    if (!modal) return;
-    
-    document.getElementById('agent-modal-instructor-id').textContent = instructorId;
-    document.getElementById('agent-modal-input').value = '';
-    document.getElementById('agent-modal-input').focus();
-    
-    modal.classList.remove('hidden');
-    const content = modal.querySelector('.modal-mobile');
-    if (content) {
-        setTimeout(() => content.classList.add('active'), 10);
-    }
-    
-    // Store the instructor ID for later use
-    modal.dataset.instructorId = instructorId;
+function showAgentModalWithPromise(instructorId) {
+    return new Promise((resolve) => {
+        const modal = document.getElementById('agent-modal');
+        if (!modal) {
+            resolve();
+            return;
+        }
+        
+        document.getElementById('agent-modal-instructor-id').textContent = instructorId;
+        const input = document.getElementById('agent-modal-input');
+        input.value = '';
+        input.focus();
+        
+        modal.classList.remove('hidden');
+        const content = modal.querySelector('.modal-mobile');
+        if (content) {
+            setTimeout(() => content.classList.add('active'), 10);
+        }
+        
+        modal.dataset.instructorId = instructorId;
+        
+        // Store resolve function to be called when modal is saved
+        window._resolveAgentPrompt = resolve;
+        
+        // Auto-save on Enter key
+        input.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                saveAgentName();
+            }
+        });
+    });
 }
 
 /**
- * Close agent modal
+ * Close agent modal (only called when saved)
  */
 function closeAgentModal() {
     const modal = document.getElementById('agent-modal');
@@ -168,21 +184,66 @@ function closeAgentModal() {
         } else {
             modal.classList.add('hidden');
         }
+        delete modal.dataset.instructorId;
     }
+    // Clear the input
+    const input = document.getElementById('agent-modal-input');
+    if (input) {
+        input.value = '';
+        input.classList.remove('border-red-500', 'bg-red-50');
+    }
+    const error = document.getElementById('agent-modal-error');
+    if (error) error.remove();
 }
 
 /**
- * Save agent name
+ * Save agent name - REQUIRED action (no skip)
  */
 async function saveAgentName() {
     const modal = document.getElementById('agent-modal');
-    const instructorId = modal.dataset.instructorId;
-    const agentName = document.getElementById('agent-modal-input').value.trim();
+    const instructorId = modal?.dataset?.instructorId;
+    const agentNameInput = document.getElementById('agent-modal-input');
+    const agentName = agentNameInput?.value?.trim() || '';
+    const saveBtn = document.getElementById('agent-modal-save-btn');
+    
+    // Remove existing error message
+    const existingError = document.getElementById('agent-modal-error');
+    if (existingError) existingError.remove();
     
     if (!agentName) {
-        alert('Please enter the agent name');
+        // Highlight the input with error
+        agentNameInput.classList.add('border-red-500', 'bg-red-50');
+        agentNameInput.focus();
+        
+        // Show error message
+        const errorMsg = document.createElement('p');
+        errorMsg.id = 'agent-modal-error';
+        errorMsg.className = 'text-red-500 text-sm mt-2';
+        errorMsg.textContent = 'Please enter the agent name';
+        agentNameInput.parentNode.appendChild(errorMsg);
+        
+        // Remove error styling after 3 seconds
+        setTimeout(() => {
+            agentNameInput.classList.remove('border-red-500', 'bg-red-50');
+            const error = document.getElementById('agent-modal-error');
+            if (error) error.remove();
+        }, 3000);
         return;
     }
+    
+    // Remove error styling if exists
+    agentNameInput.classList.remove('border-red-500', 'bg-red-50');
+    
+    // Show loading state on button
+    const originalText = saveBtn.innerHTML;
+    saveBtn.disabled = true;
+    saveBtn.innerHTML = `
+        <svg class="spinner w-5 h-5 text-current inline" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        </svg>
+        Saving...
+    `;
     
     try {
         // Save to Supabase
@@ -191,7 +252,8 @@ async function saveAgentName() {
             headers: {
                 'apikey': SUPABASE_ANON_KEY,
                 'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
+                'Prefer': 'return=minimal'
             },
             body: JSON.stringify({
                 instructor_id: instructorId,
@@ -202,17 +264,35 @@ async function saveAgentName() {
         if (response.ok) {
             // Cache the agent name
             agentCache[instructorId] = agentName;
-            closeAgentModal();
             
-            // Show success message
+            // Show success notification
             showAgentSavedNotification(instructorId, agentName);
+            
+            // Close modal and resolve promise
+            closeAgentModal();
+            if (window._resolveAgentPrompt) {
+                window._resolveAgentPrompt();
+                window._resolveAgentPrompt = null;
+            }
         } else {
             const error = await response.text();
             throw new Error(error);
         }
     } catch (error) {
         console.error('Error saving agent:', error);
-        alert('Failed to save agent name. Please try again.');
+        // Show error on button
+        saveBtn.innerHTML = '❌ Failed - Try Again';
+        saveBtn.disabled = false;
+        setTimeout(() => {
+            saveBtn.innerHTML = originalText;
+            saveBtn.disabled = false;
+        }, 3000);
+    } finally {
+        // Restore button if not already restored
+        if (saveBtn.disabled) {
+            saveBtn.innerHTML = originalText;
+            saveBtn.disabled = false;
+        }
     }
 }
 
@@ -220,12 +300,11 @@ async function saveAgentName() {
  * Show notification that agent was found
  */
 function showAgentFoundNotification(instructorId, agentName) {
-    // Create a temporary notification
     const notification = document.createElement('div');
-    notification.className = 'fixed top-20 right-4 z-50 bg-green-100 border-l-4 border-green-500 p-4 rounded-lg shadow-lg transition-all duration-300';
+    notification.className = 'fixed top-20 right-4 z-50 bg-green-100 border-l-4 border-green-500 p-4 rounded-lg shadow-lg transition-all duration-300 max-w-xs';
     notification.innerHTML = `
-        <div class="flex items-center">
-            <svg class="w-5 h-5 text-green-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div class="flex items-start">
+            <svg class="w-5 h-5 text-green-600 mr-2 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
             </svg>
             <div>
@@ -248,10 +327,10 @@ function showAgentFoundNotification(instructorId, agentName) {
  */
 function showAgentSavedNotification(instructorId, agentName) {
     const notification = document.createElement('div');
-    notification.className = 'fixed top-20 right-4 z-50 bg-blue-100 border-l-4 border-blue-500 p-4 rounded-lg shadow-lg transition-all duration-300';
+    notification.className = 'fixed top-20 right-4 z-50 bg-blue-100 border-l-4 border-blue-500 p-4 rounded-lg shadow-lg transition-all duration-300 max-w-xs';
     notification.innerHTML = `
-        <div class="flex items-center">
-            <svg class="w-5 h-5 text-blue-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div class="flex items-start">
+            <svg class="w-5 h-5 text-blue-600 mr-2 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
             </svg>
             <div>
@@ -270,7 +349,7 @@ function showAgentSavedNotification(instructorId, agentName) {
 }
 
 // ============================================
-// EXISTING FUNCTIONS (with minor updates)
+// EXISTING FUNCTIONS
 // ============================================
 
 // Function to set car plate display
@@ -496,16 +575,21 @@ function initializeFormSubmitHandling() {
                 return;
             }
             
-            // Check if agent exists and prompt if needed
-            if (instructorId && instructorId.length >= 2) {
-                const exists = await checkAgentExists(instructorId);
-                if (!exists) {
-                    // Show agent modal and wait for completion
-                    await showAgentModalWithPromise(instructorId);
-                } else {
-                    // Cache the agent name
-                    await fetchAgentName(instructorId);
-                }
+            if (!instructorId || instructorId.length < 2) {
+                showErrorMessage('Please enter a valid instructor ID');
+                return;
+            }
+            
+            // Check if agent exists - THIS WILL PROMPT MODAL IF NOT FOUND (NO SKIP)
+            const exists = await checkAgentExists(instructorId);
+            if (!exists) {
+                // Show agent modal and WAIT for user to save (no skip option)
+                await showAgentModalWithPromise(instructorId);
+                // After saving, refresh agent cache
+                await fetchAgentName(instructorId);
+            } else {
+                // Cache the agent name
+                await fetchAgentName(instructorId);
             }
 
             if (currentDuplicateWarning) {
@@ -514,60 +598,15 @@ function initializeFormSubmitHandling() {
             } else {
                 await processCheckin(formData);
             }
+        } catch (error) {
+            console.error('Form submission error:', error);
+            showErrorMessage('An error occurred. Please try again.');
         } finally {
             submitButton.disabled = false;
             submitButton.innerHTML = originalButtonText;
         }
     });
 }
-
-/**
- * Show agent modal and return a promise that resolves when saved or skipped
- */
-function showAgentModalWithPromise(instructorId) {
-    return new Promise((resolve) => {
-        const modal = document.getElementById('agent-modal');
-        if (!modal) {
-            resolve();
-            return;
-        }
-        
-        document.getElementById('agent-modal-instructor-id').textContent = instructorId;
-        document.getElementById('agent-modal-input').value = '';
-        document.getElementById('agent-modal-input').focus();
-        
-        modal.classList.remove('hidden');
-        const content = modal.querySelector('.modal-mobile');
-        if (content) {
-            setTimeout(() => content.classList.add('active'), 10);
-        }
-        
-        modal.dataset.instructorId = instructorId;
-        
-        // Store resolve function to be called when modal is closed
-        window._resolveAgentPrompt = resolve;
-    });
-}
-
-// Override closeAgentModal to resolve the promise
-const originalCloseAgentModal = closeAgentModal;
-closeAgentModal = function() {
-    originalCloseAgentModal();
-    if (window._resolveAgentPrompt) {
-        window._resolveAgentPrompt();
-        window._resolveAgentPrompt = null;
-    }
-};
-
-// Override saveAgentName to resolve the promise
-const originalSaveAgentName = saveAgentName;
-saveAgentName = async function() {
-    await originalSaveAgentName();
-    if (window._resolveAgentPrompt) {
-        window._resolveAgentPrompt();
-        window._resolveAgentPrompt = null;
-    }
-};
 
 function showErrorMessage(message) {
     let errorModal = document.getElementById('error-modal');
