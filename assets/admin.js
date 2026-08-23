@@ -71,21 +71,22 @@ function getMalaysiaTomorrow() {
  * This properly handles the date filtering for Supabase
  */
 function getMalaysiaDateRange(dateStr) {
-    const [year, month, day] = dateStr.split('-').map(Number);
+    // Malaysia is UTC+8
+    // To query a full day in Malaysia timezone, we need to query:
+    // Start: previous day 16:00 UTC (which is 00:00 MYT)
+    // End: current day 15:59:59 UTC (which is 23:59:59 MYT)
     
-    // Create date at midnight in Malaysia timezone using the timezone offset
-    // Malaysia is UTC+8, so we need to adjust
-    const malaysiaOffset = 8 * 60; // 8 hours in minutes
+    const date = new Date(dateStr + 'T00:00:00+08:00');
     
-    // Start of day in Malaysia (00:00:00)
-    // Create a UTC date that represents midnight in Malaysia
-    const startUTC = new Date(Date.UTC(year, month - 1, day, 0, 0, 0));
-    // Subtract 8 hours to get UTC time
-    startUTC.setHours(startUTC.getHours() - 8);
+    // Start of day in Malaysia (00:00:00 MYT)
+    const startUTC = new Date(date);
+    startUTC.setHours(16, 0, 0, 0);
+    startUTC.setDate(startUTC.getDate() - 1); // Previous day 16:00 UTC
     
-    // End of day in Malaysia (23:59:59.999)
-    const endUTC = new Date(Date.UTC(year, month - 1, day, 23, 59, 59, 999));
-    endUTC.setHours(endUTC.getHours() - 8);
+    // End of day in Malaysia (23:59:59 MYT)
+    const endUTC = new Date(date);
+    endUTC.setHours(15, 59, 59, 999);
+    // Keep the same day for end
     
     console.log('Date filter:', dateStr);
     console.log('UTC start:', startUTC.toISOString());
