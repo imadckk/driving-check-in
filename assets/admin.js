@@ -1,8 +1,6 @@
 /**
  * Admin Report - Driving School
- * Complete rewrite with date range support
- * Malaysia Timezone (UTC+8)
- * Version 2.7 - Fixed date headers (no emojis)
+ * Version 2.9 - With Agent Names
  */
 
 // ============================================
@@ -11,28 +9,8 @@
 const CONFIG = {
     SUPABASE_URL: 'https://dorkygsgobhcagtqydjb.supabase.co',
     SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRvcmt5Z3Nnb2JoY2FndHF5ZGpiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjEwOTc0MzcsImV4cCI6MjA3NjY3MzQzN30.bNCo8Ijj2DIr-c34P7U-lb6QK69D8OzO2sCd6SOwaW0',
-    AUTO_REFRESH_INTERVAL: 30000, // 30 seconds
-    TIMEZONE: 'Asia/Kuala_Lumpur', // Malaysia timezone
-    TABLE_COLUMNS: [
-        { header: 'Session', width: 15 },
-        { header: 'Instructor', width: 20 },
-        { header: 'Student', width: 35 },
-        { header: 'Student ID', width: 22 },
-        { header: 'Car Plate', width: 18 },
-        { header: 'Duration', width: 15 },
-        { header: 'Time Range', width: 30 }
-    ],
-    PDF_COLORS: {
-        headerBg: [59, 130, 246],
-        headerText: [255, 255, 255],
-        evenRowBg: [249, 250, 251],
-        oddRowBg: [255, 255, 255],
-        text: [0, 0, 0],
-        title: [31, 41, 55],
-        summary: [59, 130, 246],
-        dateGroupBg: [243, 244, 246],
-        dateGroupText: [31, 41, 55]
-    }
+    AUTO_REFRESH_INTERVAL: 30000,
+    TIMEZONE: 'Asia/Kuala_Lumpur'
 };
 
 // ============================================
@@ -40,6 +18,7 @@ const CONFIG = {
 // ============================================
 const State = {
     checkins: [],
+    agents: {},
     currentPDF: null,
     isLoading: false,
     refreshTimer: null,
@@ -47,10 +26,11 @@ const State = {
 };
 
 // ============================================
-// DOM REFERENCES (cached for performance)
+// DOM REFERENCES
 // ============================================
 const DOM = {
     totalCheckins: document.getElementById('total-checkins'),
+    totalAgents: document.getElementById('total-agents'),
     dateFilter: document.getElementById('date-filter'),
     dateFrom: document.getElementById('date-from'),
     dateTo: document.getElementById('date-to'),
@@ -147,13 +127,9 @@ function getDateKey(isoString) {
     return `${year}-${month}-${day}`;
 }
 
-/**
- * Sanitize text for PDF - removes special characters that might cause issues
- */
 function sanitizeForPDF(text) {
     if (text == null) return 'N/A';
     let clean = String(text);
-    // Remove emojis and other non-printable characters
     clean = clean.replace(/[^\x20-\x7E]/g, '');
     if (clean.length > 50) {
         clean = clean.substring(0, 47) + '...';
@@ -174,6 +150,47 @@ function escapeHtml(unsafe) {
 function forceUppercase(input) {
     if (input) {
         input.value = input.value.toUpperCase();
+    }
+}
+
+// ============================================
+// AGENT MANAGEMENT
+// ============================================
+
+async function loadAgents() {
+    try {
+        const response = await fetch(`${CONFIG.SUPABASE_URL}/rest/v1/agents?select=*`, {
+            headers: {
+                'apikey': CONFIG.SUPABASE_ANON_KEY,
+                'Authorization': `Bearer ${CONFIG.SUPABASE_ANON_KEY}`
+            }
+        });
+        
+        if (response.ok) {
+            const agents = await response.json();
+            State.agents = {};
+            agents.forEach(agent => {
+                State.agents[agent.instructor_id] = agent.agent_name;
+            });
+            updateAgentStats();
+        }
+    } catch (error) {
+        console.error('Error loading agents:', error);
+    }
+}
+
+function getAgentName(instructorId) {
+    return State.agents[instructorId] || 'Not Registered';
+}
+
+function hasAgentName(instructorId) {
+    return State.agents[instructorId] !== undefined && State.agents[instructorId] !== null;
+}
+
+function updateAgentStats() {
+    const count = Object.keys(State.agents).length;
+    if (DOM.totalAgents) {
+        DOM.totalAgents.textContent = count;
     }
 }
 
@@ -259,6 +276,11 @@ async function loadCheckins() {
     showLoading(true);
     
     try {
+        // Load agents first
+        if (Object.keys(State.agents).length === 0) {
+            await loadAgents();
+        }
+        
         const url = buildQueryURL();
         const response = await fetch(url, {
             headers: {
@@ -313,7 +335,11 @@ function renderCheckins() {
         return;
     }
     
-    DOM.tableBody.innerHTML = checkins.map(checkin => `
+    // Desktop Table - with Agent Name column
+    DOM.tableBody.innerHTML = checkins.map(checkin => {
+        const agentName = getAgentName(checkin.instructor_id);
+        const hasName = hasAgentName(checkin.instructor_id);
+        return `
         <tr class="hover:bg-gray-50">
             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                 ${formatToLocalDateTime(checkin.timestamp)}
@@ -325,8 +351,14 @@ function renderCheckins() {
                     ${escapeHtml(checkin.session || 'N/A')}
                 </span>
             </td>
-            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                 ${escapeHtml(checkin.instructor_id)}
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                <span class="${hasName ? 'text-green-600' : 'text-red-500'}">
+                    ${escapeHtml(agentName)}
+                    ${!hasName ? ' ⚠️' : ''}
+                </span>
             </td>
             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                 ${escapeHtml(checkin.student_name)}
@@ -345,9 +377,13 @@ function renderCheckins() {
                     `${escapeHtml(checkin.start_time)} - ${escapeHtml(checkin.end_time)}` : 'N/A'}
             </td>
         </tr>
-    `).join('');
+    `}).join('');
     
-    DOM.mobileCards.innerHTML = checkins.map(checkin => `
+    // Mobile Cards - with Agent Name
+    DOM.mobileCards.innerHTML = checkins.map(checkin => {
+        const agentName = getAgentName(checkin.instructor_id);
+        const hasName = hasAgentName(checkin.instructor_id);
+        return `
         <div class="bg-white rounded-lg shadow-md p-4 border-l-4 ${
             checkin.session === 'KPP02' ? 'border-blue-500' : 'border-green-500'
         }">
@@ -368,6 +404,13 @@ function renderCheckins() {
                 <div>
                     <div class="text-xs text-gray-500">Instructor ID</div>
                     <div class="font-medium">${escapeHtml(checkin.instructor_id)}</div>
+                </div>
+                <div>
+                    <div class="text-xs text-gray-500">Agent Name</div>
+                    <div class="font-medium ${hasName ? 'text-green-600' : 'text-red-500'}">
+                        ${escapeHtml(agentName)}
+                        ${!hasName ? ' ⚠️' : ''}
+                    </div>
                 </div>
                 <div class="grid grid-cols-2 gap-4">
                     <div>
@@ -392,7 +435,7 @@ function renderCheckins() {
                 </div>
             </div>
         </div>
-    `).join('');
+    `}).join('');
 }
 
 function updateStats() {
@@ -424,41 +467,13 @@ function clearFilters() {
 }
 
 // ============================================
-// GROUP CHECKINS BY DATE
+// PDF GENERATION (with Agent Names)
 // ============================================
 
-function groupCheckinsByDate(checkins) {
-    const grouped = {};
-    checkins.forEach(checkin => {
-        const dateKey = getDateKey(checkin.timestamp);
-        if (!grouped[dateKey]) {
-            grouped[dateKey] = [];
-        }
-        grouped[dateKey].push(checkin);
-    });
-    // Sort dates in descending order (newest first)
-    const sortedDates = Object.keys(grouped).sort((a, b) => b.localeCompare(a));
-    const result = {};
-    sortedDates.forEach(date => {
-        result[date] = grouped[date];
-    });
-    return result;
-}
-
-// ============================================
-// PDF GENERATION (Grouped by Date - No Emojis)
-// ============================================
-
-/**
- * Check if jsPDF is loaded
- */
 function isJsPDFLoaded() {
     return typeof window.jspdf !== 'undefined' && typeof window.jspdf.jsPDF !== 'undefined';
 }
 
-/**
- * Get jsPDF instance safely
- */
 function getJsPDF() {
     if (isJsPDFLoaded()) {
         return window.jspdf.jsPDF;
@@ -469,9 +484,6 @@ function getJsPDF() {
     return null;
 }
 
-/**
- * Generate and preview PDF
- */
 async function generatePDFPreview() {
     if (State.checkins.length === 0) {
         alert('No data to generate PDF');
@@ -479,13 +491,10 @@ async function generatePDFPreview() {
     }
 
     if (!isJsPDFLoaded()) {
-        console.error('jsPDF library not loaded');
         alert('PDF library is still loading. Please wait a moment and try again.');
-        
         try {
             await loadJsPDFLibrary();
         } catch (error) {
-            console.error('Failed to load jsPDF:', error);
             alert('Failed to load PDF library. Please refresh the page and try again.');
             return;
         }
@@ -529,16 +538,12 @@ async function generatePDFPreview() {
     }
 }
 
-/**
- * Load jsPDF library dynamically if not already loaded
- */
 function loadJsPDFLibrary() {
     return new Promise((resolve, reject) => {
         if (isJsPDFLoaded()) {
             resolve();
             return;
         }
-        
         const script = document.createElement('script');
         script.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
         script.onload = () => {
@@ -555,16 +560,10 @@ function loadJsPDFLibrary() {
     });
 }
 
-/**
- * Retry PDF generation
- */
 function retryPDFGeneration() {
     generatePDFPreview();
 }
 
-/**
- * Create PDF document - Grouped by Date (No Emojis)
- */
 function createPDF() {
     return new Promise((resolve, reject) => {
         try {
@@ -636,48 +635,43 @@ function createPDF() {
             const groupedData = groupCheckinsByDate(State.checkins);
             const dateKeys = Object.keys(groupedData);
             
-            // --- Table columns (excluding Date column since we group by date) ---
+            // --- Table columns (with Agent Name) ---
             const columnConfig = [
                 { header: 'Session', width: 15 },
-                { header: 'Instructor', width: 20 },
-                { header: 'Student', width: 35 },
-                { header: 'Student ID', width: 22 },
+                { header: 'Instructor', width: 18 },
+                { header: 'Agent Name', width: 25 },
+                { header: 'Student', width: 30 },
+                { header: 'Student ID', width: 20 },
                 { header: 'Car Plate', width: 18 },
                 { header: 'Duration', width: 15 },
-                { header: 'Time Range', width: 30 }
+                { header: 'Time Range', width: 25 }
             ];
             
             const rowHeight = 8;
             let yPosition = 50;
             
-            // Process each date group
-            dateKeys.forEach((dateKey, dateIndex) => {
+            dateKeys.forEach((dateKey) => {
                 const checkinsForDate = groupedData[dateKey];
-                // Format date as DD-MM-YYYY for display
                 const dateDisplay = formatDateDisplay(dateKey);
                 
-                // Check if we need a new page for the date header
+                // Check page break for date header
                 if (yPosition > 260) {
                     doc.addPage();
                     yPosition = 20;
-                    // Reset font settings
                     doc.setFont('helvetica', 'normal');
                     doc.setFontSize(6);
                     doc.setTextColor(0, 0, 0);
                 }
                 
-                // --- Date Group Header (No emoji) ---
+                // --- Date Group Header ---
                 doc.setFillColor(243, 244, 246);
                 doc.rect(margin, yPosition, contentWidth, rowHeight + 2, 'F');
                 doc.setFontSize(10);
                 doc.setFont('helvetica', 'bold');
                 doc.setTextColor(31, 41, 55);
-                // Plain text date header - no emoji
-                const headerText = `Date: ${dateDisplay} (${checkinsForDate.length} records)`;
-                doc.text(headerText, margin + 5, yPosition + 6);
+                doc.text(`Date: ${dateDisplay} (${checkinsForDate.length} records)`, margin + 5, yPosition + 6);
                 yPosition += rowHeight + 2;
                 
-                // Check if we need a new page for the table
                 if (yPosition > 260) {
                     doc.addPage();
                     yPosition = 20;
@@ -686,7 +680,7 @@ function createPDF() {
                     doc.setTextColor(0, 0, 0);
                 }
                 
-                // --- Table Header for this date group ---
+                // --- Table Header ---
                 doc.setFillColor(59, 130, 246);
                 doc.rect(margin, yPosition, contentWidth, rowHeight, 'F');
                 doc.setFontSize(7);
@@ -700,24 +694,19 @@ function createPDF() {
                 });
                 yPosition += rowHeight;
                 
-                // Reset font for data rows
                 doc.setFont('helvetica', 'normal');
                 doc.setFontSize(6);
                 doc.setTextColor(0, 0, 0);
                 
-                // --- Data rows for this date ---
+                // --- Data rows ---
                 checkinsForDate.forEach((checkin, index) => {
-                    // Check page break
                     if (yPosition > 270) {
                         doc.addPage();
                         yPosition = 20;
-                        
-                        // Reset font settings
                         doc.setFont('helvetica', 'normal');
                         doc.setFontSize(7);
                         doc.setTextColor(0, 0, 0);
                         
-                        // Redraw table header on new page
                         doc.setFillColor(59, 130, 246);
                         doc.rect(margin, yPosition, contentWidth, rowHeight, 'F');
                         doc.setFontSize(7);
@@ -731,68 +720,62 @@ function createPDF() {
                         });
                         yPosition += rowHeight;
                         
-                        // Reset font for data rows
                         doc.setFont('helvetica', 'normal');
                         doc.setFontSize(6);
                         doc.setTextColor(0, 0, 0);
                     }
                     
-                    // Row background
                     const isEven = index % 2 === 0;
                     doc.setFillColor(isEven ? 249 : 255, isEven ? 250 : 255, isEven ? 251 : 255);
                     doc.rect(margin, yPosition, contentWidth, rowHeight, 'F');
                     
-                    // Reset text color and font for each row
                     doc.setFont('helvetica', 'normal');
                     doc.setFontSize(6);
                     doc.setTextColor(0, 0, 0);
                     
-                    // Row data
+                    const agentName = getAgentName(checkin.instructor_id);
+                    
                     let cellX = margin + 1;
                     
                     // Session
-                    const sessionText = sanitizeForPDF(checkin.session || 'N/A');
-                    doc.text(sessionText, cellX, yPosition + 5);
+                    doc.text(sanitizeForPDF(checkin.session || 'N/A'), cellX, yPosition + 5);
                     cellX += columnConfig[0].width;
                     
-                    // Instructor
-                    const instructorText = sanitizeForPDF(checkin.instructor_id || 'N/A');
-                    doc.text(instructorText, cellX, yPosition + 5);
+                    // Instructor ID
+                    doc.text(sanitizeForPDF(checkin.instructor_id || 'N/A'), cellX, yPosition + 5);
                     cellX += columnConfig[1].width;
                     
-                    // Student Name
-                    const studentNameText = sanitizeForPDF(checkin.student_name || 'N/A');
-                    doc.text(studentNameText, cellX, yPosition + 5);
+                    // Agent Name
+                    doc.text(sanitizeForPDF(agentName), cellX, yPosition + 5);
                     cellX += columnConfig[2].width;
                     
-                    // Student ID
-                    const studentIdText = sanitizeForPDF(checkin.student_id || 'N/A');
-                    doc.text(studentIdText, cellX, yPosition + 5);
+                    // Student Name
+                    doc.text(sanitizeForPDF(checkin.student_name || 'N/A'), cellX, yPosition + 5);
                     cellX += columnConfig[3].width;
                     
-                    // Car Plate
-                    const carPlateText = sanitizeForPDF(checkin.car_plate || 'N/A');
-                    doc.text(carPlateText, cellX, yPosition + 5);
+                    // Student ID
+                    doc.text(sanitizeForPDF(checkin.student_id || 'N/A'), cellX, yPosition + 5);
                     cellX += columnConfig[4].width;
                     
-                    // Duration
-                    const durationText = checkin.duration ? sanitizeForPDF(checkin.duration + 'h') : 'N/A';
-                    doc.text(durationText, cellX, yPosition + 5);
+                    // Car Plate
+                    doc.text(sanitizeForPDF(checkin.car_plate || 'N/A'), cellX, yPosition + 5);
                     cellX += columnConfig[5].width;
                     
+                    // Duration
+                    doc.text(checkin.duration ? sanitizeForPDF(checkin.duration + 'h') : 'N/A', cellX, yPosition + 5);
+                    cellX += columnConfig[6].width;
+                    
                     // Time Range
-                    const timeRangeText = checkin.start_time && checkin.end_time ? 
-                        sanitizeForPDF(`${checkin.start_time} - ${checkin.end_time}`) : 'N/A';
-                    doc.text(timeRangeText, cellX, yPosition + 5);
+                    const timeRange = checkin.start_time && checkin.end_time ? 
+                        `${checkin.start_time} - ${checkin.end_time}` : 'N/A';
+                    doc.text(sanitizeForPDF(timeRange), cellX, yPosition + 5);
                     
                     yPosition += rowHeight;
                 });
                 
-                // Add a small gap between date groups
                 yPosition += 4;
             });
             
-            // --- Page numbers ---
             const pageCount = doc.internal.getNumberOfPages();
             doc.setFontSize(6);
             doc.setFont('helvetica', 'normal');
@@ -807,6 +790,23 @@ function createPDF() {
             reject(error);
         }
     });
+}
+
+function groupCheckinsByDate(checkins) {
+    const grouped = {};
+    checkins.forEach(checkin => {
+        const dateKey = getDateKey(checkin.timestamp);
+        if (!grouped[dateKey]) {
+            grouped[dateKey] = [];
+        }
+        grouped[dateKey].push(checkin);
+    });
+    const sortedDates = Object.keys(grouped).sort((a, b) => b.localeCompare(a));
+    const result = {};
+    sortedDates.forEach(date => {
+        result[date] = grouped[date];
+    });
+    return result;
 }
 
 function downloadPDF() {
@@ -862,7 +862,7 @@ function init() {
     setTimeout(() => {
         clearInterval(checkLibraries);
         if (!State.pdfLibraryLoaded) {
-            console.warn('jsPDF not loaded after 5 seconds, will try dynamic loading');
+            console.warn('jsPDF not loaded after 5 seconds');
         }
     }, 5000);
     
@@ -878,12 +878,12 @@ function init() {
         radio.addEventListener('change', toggleDateMode);
     });
     
+    loadAgents();
     loadCheckins();
     startAutoRefresh();
     
     console.log('Admin Report initialized successfully (Malaysia Timezone)');
     console.log(`Timezone: ${CONFIG.TIMEZONE}`);
-    console.log(`Auto-refresh interval: ${CONFIG.AUTO_REFRESH_INTERVAL / 1000} seconds`);
 }
 
 // ============================================
