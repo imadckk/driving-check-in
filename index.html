@@ -465,19 +465,18 @@
                            placeholder="Enter agent name"
                            autocomplete="off"
                            autocapitalize="words"
-                           maxlength="100">
+                           maxlength="100"
+                           required>
                 </div>
                 
-                <div class="grid grid-cols-2 gap-3">
-                    <button onclick="closeAgentModal()" 
-                            class="py-3 px-4 bg-gray-200 text-gray-800 font-semibold rounded-lg hover:bg-gray-300 transition-colors">
-                        Skip
-                    </button>
-                    <button onclick="saveAgentName()" 
-                            class="py-3 px-4 bg-[#290C73] text-white font-semibold rounded-lg hover:bg-[#1e0854] transition-colors">
-                        Save Agent
-                    </button>
-                </div>
+                <button onclick="saveAgentName()" 
+                        id="agent-modal-save-btn"
+                        class="w-full py-3 px-4 bg-[#290C73] text-white font-semibold rounded-lg hover:bg-[#1e0854] transition-colors flex items-center justify-center gap-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                    </svg>
+                    Save Agent
+                </button>
                 <p class="text-xs text-gray-400 mt-3">This will only be asked once per instructor</p>
             </div>
         </div>
