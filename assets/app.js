@@ -107,12 +107,12 @@ async function checkAgentExists(instructorId) {
 }
 
 /**
- * Fetch agent name from Supabase
+ * Fetch agent name and IC from Supabase
  */
 async function fetchAgentName(instructorId) {
     try {
         const response = await fetch(
-            `${SUPABASE_URL}/rest/v1/agents?instructor_id=eq.${encodeURIComponent(instructorId)}&select=agent_name`,
+            `${SUPABASE_URL}/rest/v1/agents?instructor_id=eq.${encodeURIComponent(instructorId)}&select=agent_name,icno`,
             {
                 headers: {
                     'apikey': SUPABASE_ANON_KEY,
@@ -124,7 +124,10 @@ async function fetchAgentName(instructorId) {
         if (response.ok) {
             const data = await response.json();
             if (data.length > 0) {
-                agentCache[instructorId] = data[0].agent_name;
+                agentCache[instructorId] = {
+                    name: data[0].agent_name,
+                    icno: data[0].icno
+                };
                 // Show a subtle confirmation
                 showAgentFoundNotification(instructorId, data[0].agent_name);
             }
@@ -146,9 +149,22 @@ function showAgentModalWithPromise(instructorId) {
         }
         
         document.getElementById('agent-modal-instructor-id').textContent = instructorId;
-        const input = document.getElementById('agent-modal-input');
-        input.value = '';
-        input.focus();
+        const nameInput = document.getElementById('agent-modal-input');
+        const icInput = document.getElementById('agent-modal-ic');
+        nameInput.value = '';
+        icInput.value = '';
+        
+        // Clear validation states
+        nameInput.classList.remove('border-red-500', 'bg-red-50');
+        icInput.classList.remove('ic-valid', 'ic-invalid');
+        const helper = document.getElementById('agent-modal-ic-helper');
+        if (helper) {
+            helper.textContent = '';
+            helper.className = 'ic-helper-text';
+        }
+        
+        // Focus on name input first
+        setTimeout(() => nameInput.focus(), 100);
         
         modal.classList.remove('hidden');
         const content = modal.querySelector('.modal-mobile');
@@ -161,13 +177,18 @@ function showAgentModalWithPromise(instructorId) {
         // Store resolve function to be called when modal is saved
         window._resolveAgentPrompt = resolve;
         
-        // Auto-save on Enter key
-        input.addEventListener('keydown', function(e) {
+        // Auto-save on Enter key (from either input)
+        const saveOnEnter = function(e) {
             if (e.key === 'Enter') {
                 e.preventDefault();
                 saveAgentName();
             }
-        });
+        };
+        nameInput.addEventListener('keydown', saveOnEnter);
+        icInput.addEventListener('keydown', saveOnEnter);
+        
+        // Store reference to remove listeners later
+        modal.dataset._nameListener = saveOnEnter;
     });
 }
 
@@ -185,12 +206,33 @@ function closeAgentModal() {
             modal.classList.add('hidden');
         }
         delete modal.dataset.instructorId;
+        
+        // Remove event listeners
+        const nameInput = document.getElementById('agent-modal-input');
+        const icInput = document.getElementById('agent-modal-ic');
+        if (nameInput && modal.dataset._nameListener) {
+            nameInput.removeEventListener('keydown', modal.dataset._nameListener);
+        }
+        if (icInput && modal.dataset._nameListener) {
+            icInput.removeEventListener('keydown', modal.dataset._nameListener);
+        }
+        delete modal.dataset._nameListener;
     }
-    // Clear the input
-    const input = document.getElementById('agent-modal-input');
-    if (input) {
-        input.value = '';
-        input.classList.remove('border-red-500', 'bg-red-50');
+    // Clear inputs
+    const nameInput = document.getElementById('agent-modal-input');
+    const icInput = document.getElementById('agent-modal-ic');
+    if (nameInput) {
+        nameInput.value = '';
+        nameInput.classList.remove('border-red-500', 'bg-red-50');
+    }
+    if (icInput) {
+        icInput.value = '';
+        icInput.classList.remove('ic-valid', 'ic-invalid');
+    }
+    const helper = document.getElementById('agent-modal-ic-helper');
+    if (helper) {
+        helper.textContent = '';
+        helper.className = 'ic-helper-text';
     }
     const error = document.getElementById('agent-modal-error');
     if (error) error.remove();
@@ -203,36 +245,62 @@ async function saveAgentName() {
     const modal = document.getElementById('agent-modal');
     const instructorId = modal?.dataset?.instructorId;
     const agentNameInput = document.getElementById('agent-modal-input');
+    const agentIcInput = document.getElementById('agent-modal-ic');
     const agentName = agentNameInput?.value?.trim() || '';
+    const agentIc = agentIcInput?.value?.trim() || '';
     const saveBtn = document.getElementById('agent-modal-save-btn');
     
-    // Remove existing error message
-    const existingError = document.getElementById('agent-modal-error');
-    if (existingError) existingError.remove();
+    // Remove existing error messages
+    const existingErrors = document.querySelectorAll('#agent-modal-error');
+    existingErrors.forEach(el => el.remove());
     
+    // Clear previous error styling
+    agentNameInput.classList.remove('border-red-500', 'bg-red-50');
+    agentIcInput.classList.remove('border-red-500', 'bg-red-50');
+    
+    let hasError = false;
+    
+    // Validate name
     if (!agentName) {
-        // Highlight the input with error
         agentNameInput.classList.add('border-red-500', 'bg-red-50');
         agentNameInput.focus();
-        
+        hasError = true;
+    }
+    
+    // Validate IC (must be numeric only)
+    if (!agentIc) {
+        agentIcInput.classList.add('border-red-500', 'bg-red-50');
+        if (!hasError) agentIcInput.focus();
+        hasError = true;
+    } else if (!/^[0-9]+$/.test(agentIc)) {
+        agentIcInput.classList.add('border-red-500', 'bg-red-50');
+        const helper = document.getElementById('agent-modal-ic-helper');
+        if (helper) {
+            helper.textContent = '❌ Please enter numbers only';
+            helper.className = 'ic-helper-text invalid';
+        }
+        if (!hasError) agentIcInput.focus();
+        hasError = true;
+    }
+    
+    if (hasError) {
         // Show error message
         const errorMsg = document.createElement('p');
         errorMsg.id = 'agent-modal-error';
-        errorMsg.className = 'text-red-500 text-sm mt-2';
-        errorMsg.textContent = 'Please enter the agent name';
-        agentNameInput.parentNode.appendChild(errorMsg);
+        errorMsg.className = 'text-red-500 text-sm mt-2 text-center';
+        errorMsg.textContent = 'Please fill in all required fields correctly';
+        const container = agentNameInput.parentElement.parentElement;
+        container.appendChild(errorMsg);
         
-        // Remove error styling after 3 seconds
+        // Auto-remove error styling after 3 seconds
         setTimeout(() => {
             agentNameInput.classList.remove('border-red-500', 'bg-red-50');
+            agentIcInput.classList.remove('border-red-500', 'bg-red-50');
             const error = document.getElementById('agent-modal-error');
             if (error) error.remove();
         }, 3000);
         return;
     }
-    
-    // Remove error styling if exists
-    agentNameInput.classList.remove('border-red-500', 'bg-red-50');
     
     // Show loading state on button
     const originalText = saveBtn.innerHTML;
@@ -246,7 +314,7 @@ async function saveAgentName() {
     `;
     
     try {
-        // Save to Supabase
+        // Save to Supabase with icno
         const response = await fetch(`${SUPABASE_URL}/rest/v1/agents`, {
             method: 'POST',
             headers: {
@@ -257,13 +325,17 @@ async function saveAgentName() {
             },
             body: JSON.stringify({
                 instructor_id: instructorId,
-                agent_name: agentName
+                agent_name: agentName,
+                icno: agentIc
             })
         });
         
         if (response.ok) {
-            // Cache the agent name
-            agentCache[instructorId] = agentName;
+            // Cache the agent data
+            agentCache[instructorId] = {
+                name: agentName,
+                icno: agentIc
+            };
             
             // Show success notification
             showAgentSavedNotification(instructorId, agentName);
@@ -349,7 +421,7 @@ function showAgentSavedNotification(instructorId, agentName) {
 }
 
 // ============================================
-// EXISTING FUNCTIONS
+// EXISTING FUNCTIONS (UPDATED)
 // ============================================
 
 // Function to set car plate display
@@ -545,7 +617,7 @@ function initializeFormSubmitHandling() {
             const duration = parseFloat(document.getElementById('duration').value);
             const endTime = calculateEndTime(now, duration);
             
-            // Get instructor ID and check if agent exists
+            // Get instructor ID
             const instructorId = document.getElementById('instructor-id').value.trim().toUpperCase();
             
             const formData = {
@@ -588,7 +660,7 @@ function initializeFormSubmitHandling() {
                 // After saving, refresh agent cache
                 await fetchAgentName(instructorId);
             } else {
-                // Cache the agent name
+                // Fetch and cache the agent data (including IC)
                 await fetchAgentName(instructorId);
             }
 
