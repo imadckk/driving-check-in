@@ -221,6 +221,31 @@
             font-size: 15px;
             text-align: center;
         }
+
+        /* IC Number validation styling for modal */
+        .input-mobile.ic-valid {
+            border-color: #22c55e;
+            background-color: #f0fdf4;
+        }
+
+        .input-mobile.ic-invalid {
+            border-color: #ef4444;
+            background-color: #fef2f2;
+        }
+
+        .ic-helper-text {
+            font-size: 12px;
+            margin-top: 4px;
+            display: block;
+        }
+
+        .ic-helper-text.valid {
+            color: #22c55e;
+        }
+
+        .ic-helper-text.invalid {
+            color: #ef4444;
+        }
     </style>
 </head>
 <body class="bg-gray-50 min-h-screen safe-top safe-bottom">
@@ -443,7 +468,7 @@
         </div>
     </div>
 
-    <!-- Agent Name Modal -->
+    <!-- Agent Name Modal (UPDATED with IC Number) -->
     <div id="agent-modal" class="fixed inset-0 bg-black/50 modal-backdrop hidden z-50">
         <div class="modal-mobile" id="agent-modal-content">
             <div class="text-center">
@@ -456,22 +481,42 @@
                 <p class="text-gray-600 mb-4">
                     CODE AGENT: <span id="agent-modal-instructor-id" class="font-bold text-blue-600"></span>
                 </p>
-                <p class="text-gray-500 text-sm mb-4">Please enter the TUTOR NAME:</p>
                 
-                <div class="mb-6">
-                    <input type="text" 
-                           id="agent-modal-input" 
-                           class="input-mobile text-center"
-                           placeholder="Enter agent name"
-                           autocomplete="off"
-                           autocapitalize="words"
-                           maxlength="100"
-                           required>
+                <div class="space-y-4 text-left">
+                    <div>
+                        <label class="text-sm font-medium text-gray-700 block mb-1">
+                            TUTOR NAME <span class="text-red-500">*</span>
+                        </label>
+                        <input type="text" 
+                               id="agent-modal-input" 
+                               class="input-mobile"
+                               placeholder="Enter agent name"
+                               autocomplete="off"
+                               autocapitalize="words"
+                               maxlength="100"
+                               required>
+                    </div>
+                    
+                    <div>
+                        <label class="text-sm font-medium text-gray-700 block mb-1">
+                            IC NUMBER <span class="text-red-500">*</span>
+                        </label>
+                        <input type="text" 
+                               id="agent-modal-ic" 
+                               class="input-mobile"
+                               placeholder="Enter IC number (numbers only)"
+                               inputmode="numeric"
+                               autocomplete="off"
+                               maxlength="20"
+                               required
+                               oninput="validateAgentIc(this)">
+                        <span id="agent-modal-ic-helper" class="ic-helper-text"></span>
+                    </div>
                 </div>
                 
                 <button onclick="saveAgentName()" 
                         id="agent-modal-save-btn"
-                        class="w-full py-3 px-4 bg-[#290C73] text-white font-semibold rounded-lg hover:bg-[#1e0854] transition-colors flex items-center justify-center gap-2">
+                        class="w-full py-3 px-4 bg-[#290C73] text-white font-semibold rounded-lg hover:bg-[#1e0854] transition-colors flex items-center justify-center gap-2 mt-4">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
                     </svg>
@@ -533,11 +578,6 @@
             hideModal('error-modal');
         }
         
-        // function showHistoryModal() {
-        //     document.getElementById('history-modal').classList.remove('hidden');
-        //     // Load history logic
-        // }
-        
         function closeHistoryModal() {
             document.getElementById('history-modal').classList.add('hidden');
         }
@@ -556,6 +596,63 @@
             } else {
                 container.classList.add('hidden');
             }
+        });
+
+        // IC Number validation for the agent modal
+        function validateAgentIc(input) {
+            const value = input.value;
+            const helper = document.getElementById('agent-modal-ic-helper');
+            
+            // Remove any non-numeric characters
+            const numericValue = value.replace(/[^0-9]/g, '');
+            if (value !== numericValue) {
+                input.value = numericValue;
+            }
+            
+            if (numericValue.length === 0) {
+                input.classList.remove('ic-valid', 'ic-invalid');
+                helper.textContent = '';
+                helper.className = 'ic-helper-text';
+                return;
+            }
+            
+            // Check if it's numeric only (should be after cleanup)
+            if (/^[0-9]+$/.test(numericValue)) {
+                input.classList.remove('ic-invalid');
+                input.classList.add('ic-valid');
+                helper.textContent = '✅ Valid IC number';
+                helper.className = 'ic-helper-text valid';
+            } else {
+                input.classList.remove('ic-valid');
+                input.classList.add('ic-invalid');
+                helper.textContent = '❌ Please enter numbers only';
+                helper.className = 'ic-helper-text invalid';
+            }
+        }
+
+        // Initialize IC validation on modal open
+        document.addEventListener('DOMContentLoaded', function() {
+            const modal = document.getElementById('agent-modal');
+            const icInput = document.getElementById('agent-modal-ic');
+            
+            // Reset validation when modal is hidden
+            const observer = new MutationObserver(function(mutations) {
+                mutations.forEach(function(mutation) {
+                    if (mutation.attributeName === 'class') {
+                        if (modal.classList.contains('hidden')) {
+                            icInput.classList.remove('ic-valid', 'ic-invalid');
+                            const helper = document.getElementById('agent-modal-ic-helper');
+                            if (helper) {
+                                helper.textContent = '';
+                                helper.className = 'ic-helper-text';
+                            }
+                            icInput.value = '';
+                        }
+                    }
+                });
+            });
+            
+            observer.observe(modal, { attributes: true });
         });
     </script>
 </body>
