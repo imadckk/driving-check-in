@@ -7,7 +7,7 @@ let currentCheckins = [];
 let instructorCache = {};
 let isPrinting = false;
 
-// Search on Enter key
+// Wait for DOM to be ready
 document.addEventListener('DOMContentLoaded', function() {
     const searchInput = document.getElementById('search-student-id');
     if (searchInput) {
@@ -336,7 +336,7 @@ function showToast(message, type = 'info') {
     }, 4000);
 }
 
-// Export functions for HTML onclick
+// Make functions globally accessible
 window.searchStudent = searchStudent;
 window.clearSearch = clearSearch;
 window.printRecord = printRecord;
