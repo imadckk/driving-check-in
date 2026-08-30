@@ -136,6 +136,23 @@
             font-weight: 600;
         }
         
+        /* Fixed height for empty cells */
+        .kpp03-form table td.empty-cell {
+            height: 28px;
+            min-height: 28px;
+            max-height: 28px;
+            background: #f9fafb;
+            color: #9ca3af;
+            font-size: 10px;
+        }
+        
+        .kpp03-form table td.filled-cell {
+            height: 28px;
+            min-height: 28px;
+            max-height: 28px;
+            background: #f0fdf4;
+        }
+        
         .kpp03-form .section-title {
             font-weight: 700;
             text-align: center;
@@ -184,6 +201,49 @@
             line-height: 1.4;
         }
         
+        /* Side by side declarations */
+        .declaration-split {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            border: 1px solid #000;
+            border-top: none;
+        }
+        
+        .declaration-split .declaration-half {
+            padding: 6px;
+            border-right: 1px solid #000;
+        }
+        
+        .declaration-split .declaration-half:last-child {
+            border-right: none;
+        }
+        
+        .declaration-split .declaration-half .declaration-title {
+            font-weight: 700;
+            text-align: center;
+            padding: 4px;
+            border-bottom: 1px solid #000;
+            background: #f9fafb;
+            margin-bottom: 6px;
+        }
+        
+        .declaration-split .declaration-half .declaration-text {
+            font-size: 10px;
+            line-height: 1.5;
+            padding: 4px 0;
+            text-align: center;
+        }
+        
+        .declaration-split .declaration-half .signature-block {
+            padding: 4px 0;
+            font-size: 10px;
+        }
+        
+        .declaration-split .declaration-half .signature-line {
+            min-width: 100px;
+            height: 16px;
+        }
+        
         .search-section {
             max-width: 210mm;
             margin: 0 auto 16px;
@@ -202,25 +262,37 @@
             
             .form-container {
                 box-shadow: none !important;
-                padding: 10px 15px !important;
+                padding: 8px 12px !important;
                 max-width: 100% !important;
             }
             
             .kpp03-form {
-                font-size: 10px !important;
+                font-size: 9px !important;
             }
             
             .kpp03-form table {
-                font-size: 9px !important;
+                font-size: 8px !important;
             }
             
             .kpp03-form table th,
             .kpp03-form table td {
-                padding: 3px 2px !important;
+                padding: 2px 2px !important;
+            }
+            
+            .kpp03-form table td.empty-cell {
+                height: 22px !important;
+                min-height: 22px !important;
+                max-height: 22px !important;
+            }
+            
+            .kpp03-form table td.filled-cell {
+                height: 22px !important;
+                min-height: 22px !important;
+                max-height: 22px !important;
             }
             
             .kpp03-form .title {
-                font-size: 12px !important;
+                font-size: 11px !important;
                 padding: 4px 0 !important;
             }
             
@@ -244,13 +316,22 @@
             }
             
             .kpp03-form .signature-line {
-                min-width: 80px !important;
+                min-width: 70px !important;
                 height: 14px !important;
+            }
+            
+            .declaration-split .declaration-half .signature-line {
+                min-width: 60px !important;
+                height: 12px !important;
+            }
+            
+            .declaration-split .declaration-half .declaration-text {
+                font-size: 8px !important;
             }
             
             @page {
                 size: A4 portrait;
-                margin: 10mm 8mm;
+                margin: 8mm 6mm;
             }
         }
         
@@ -284,6 +365,22 @@
         
         .modal-mobile.active {
             transform: translateY(0);
+        }
+        
+        /* Ensure table cells have proper height for writing */
+        .kpp03-form table td {
+            height: 28px;
+            min-height: 28px;
+        }
+        
+        .kpp03-form table td.signature-cell {
+            height: 28px;
+            min-height: 28px;
+        }
+        
+        .kpp03-form table td.assessment-cell {
+            height: 28px;
+            min-height: 28px;
         }
     </style>
 </head>
@@ -376,7 +473,7 @@
         </div>
     </div>
 
-    <!-- KPP03 Form - Matches Image Exactly -->
+    <!-- KPP03 Form - Updated with side-by-side declarations -->
     <div id="form-container" class="form-container hidden">
         <div class="kpp03-form" id="kpp03-form">
             <!-- Title -->
@@ -406,36 +503,35 @@
                 </tbody>
             </table>
             
-            <!-- Student Declaration -->
-            <div style="border:1px solid #000; border-top:none;">
-                <div style="font-weight:700; padding:6px; text-align:center; border-bottom:1px solid #000; background:#f9fafb;">
-                    PENGAKUAN PELAJAR
+            <!-- Student & Chief Instructor Declarations - Side by Side -->
+            <div class="declaration-split">
+                <!-- Student Declaration -->
+                <div class="declaration-half">
+                    <div class="declaration-title">PENGAKUAN PELAJAR</div>
+                    <div class="declaration-text">
+                        Saya mengaku dengan sesungguhnya telah mengikuti latihan<br>
+                        dan pengajaran mengikut jumlah jam di atas
+                    </div>
+                    <div class="signature-block">
+                        T/tangan : <span class="signature-line"></span><br>
+                        Nama : <span class="signature-line"></span><br>
+                        Tarikh : <span class="signature-line"></span>
+                    </div>
                 </div>
-                <div class="declaration-text">
-                    Saya mengaku dengan sesungguhnya telah mengikuti latihan<br>
-                    dan pengajaran mengikut jumlah jam di atas
-                </div>
-                <div class="signature-block">
-                    T/tangan : <span class="signature-line"></span><br>
-                    Nama : <span class="signature-line"></span><br>
-                    Tarikh : <span class="signature-line"></span>
-                </div>
-            </div>
-            
-            <!-- Chief Instructor Declaration -->
-            <div style="border:1px solid #000; border-top:none;">
-                <div style="font-weight:700; padding:6px; text-align:center; border-bottom:1px solid #000; background:#f9fafb;">
-                    PENGAKUAN KETUA PENGAJAR
-                </div>
-                <div class="declaration-text">
-                    Saya dengan ini mengesahkan bahawa pelajar ini telah<br>
-                    mengikuti latihan dan pengajaran yang dikendalikan oleh<br>
-                    pengajar-pengajar yang bertandatangan di atas
-                </div>
-                <div class="signature-block">
-                    T/tangan : <span class="signature-line"></span><br>
-                    Nama : <span class="signature-line"></span><br>
-                    Tarikh : <span class="signature-line"></span>
+                
+                <!-- Chief Instructor Declaration -->
+                <div class="declaration-half" style="border-right:none;">
+                    <div class="declaration-title">PENGAKUAN KETUA PENGAJAR</div>
+                    <div class="declaration-text">
+                        Saya dengan ini mengesahkan bahawa pelajar ini telah<br>
+                        mengikuti latihan dan pengajaran yang dikendalikan oleh<br>
+                        pengajar-pengajar yang bertandatangan di atas
+                    </div>
+                    <div class="signature-block">
+                        T/tangan : <span class="signature-line"></span><br>
+                        Nama : <span class="signature-line"></span><br>
+                        Tarikh : <span class="signature-line"></span>
+                    </div>
                 </div>
             </div>
             
@@ -564,7 +660,7 @@
         </div>
     </div>
 
-    <!-- JavaScript at the bottom - ensures all DOM elements are loaded -->
+    <!-- JavaScript -->
     <script>
         (function() {
             'use strict';
@@ -773,7 +869,7 @@
             }
 
             /**
-             * Populate the full KPP03 form
+             * Populate the full KPP03 form with fixed height cells
              */
             function populateForm(checkins) {
                 // Populate lesson rows (10 rows)
@@ -794,30 +890,30 @@
                         const instructorIc = checkin.instructor_ic || checkin.instructor_id || '-';
                         
                         lessonHtml += `
-                            <tr style="background:#f0fdf4;">
-                                <td>${formattedDate}</td>
-                                <td>${checkin.start_time || '-'}</td>
-                                <td>${checkin.end_time || '-'}</td>
-                                <td>${checkin.car_plate || '-'}</td>
-                                <td>${checkin.duration || 0}</td>
-                                <td><strong>KPP03</strong></td>
-                                <td style="min-height:25px;"></td>
-                                <td>${instructorIc}</td>
-                                <td style="min-height:25px;"></td>
+                            <tr>
+                                <td class="filled-cell">${formattedDate}</td>
+                                <td class="filled-cell">${checkin.start_time || '-'}</td>
+                                <td class="filled-cell">${checkin.end_time || '-'}</td>
+                                <td class="filled-cell">${checkin.car_plate || '-'}</td>
+                                <td class="filled-cell">${checkin.duration || 0}</td>
+                                <td class="filled-cell"><strong>KPP03</strong></td>
+                                <td class="filled-cell signature-cell"></td>
+                                <td class="filled-cell">${instructorIc}</td>
+                                <td class="filled-cell signature-cell"></td>
                             </tr>
                         `;
                     } else {
                         lessonHtml += `
-                            <tr style="background:#f9fafb;">
-                                <td style="color:#9ca3af; font-size:10px;"></td>
-                                <td style="color:#9ca3af; font-size:10px;"></td>
-                                <td style="color:#9ca3af; font-size:10px;"></td>
-                                <td style="color:#9ca3af; font-size:10px;"></td>
-                                <td style="color:#9ca3af; font-size:10px;"></td>
-                                <td style="color:#9ca3af; font-size:10px;"></td>
-                                <td style="color:#9ca3af; font-size:10px;"></td>
-                                <td style="color:#9ca3af; font-size:10px;"></td>
-                                <td style="color:#9ca3af; font-size:10px;"></td>
+                            <tr>
+                                <td class="empty-cell"></td>
+                                <td class="empty-cell"></td>
+                                <td class="empty-cell"></td>
+                                <td class="empty-cell"></td>
+                                <td class="empty-cell"></td>
+                                <td class="empty-cell"></td>
+                                <td class="empty-cell"></td>
+                                <td class="empty-cell"></td>
+                                <td class="empty-cell"></td>
                             </tr>
                         `;
                     }
@@ -831,15 +927,15 @@
                 
                 for (let i = 0; i < maxAssessmentRows; i++) {
                     assessmentHtml += `
-                        <tr style="background:#f9fafb;">
-                            <td style="color:#9ca3af; font-size:10px;"></td>
-                            <td style="color:#9ca3af; font-size:10px;"></td>
-                            <td style="color:#9ca3af; font-size:10px;"></td>
-                            <td style="color:#9ca3af; font-size:10px;"></td>
-                            <td style="color:#9ca3af; font-size:10px;"></td>
-                            <td colspan="2" style="color:#9ca3af; font-size:10px;"></td>
-                            <td style="color:#9ca3af; font-size:10px;"></td>
-                            <td style="color:#9ca3af; font-size:10px;"></td>
+                        <tr>
+                            <td class="empty-cell"></td>
+                            <td class="empty-cell"></td>
+                            <td class="empty-cell"></td>
+                            <td class="empty-cell"></td>
+                            <td class="empty-cell"></td>
+                            <td colspan="2" class="empty-cell"></td>
+                            <td class="empty-cell"></td>
+                            <td class="empty-cell"></td>
                         </tr>
                     `;
                 }
