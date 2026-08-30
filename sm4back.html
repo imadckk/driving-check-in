@@ -768,23 +768,29 @@
 
                 try {
                     // Fetch check-ins and instructor data in parallel
-                    const [checkins, instructorMap] = await Promise.all([
+                    const [checkins, instructors] = await Promise.all([
                         fetchStudentCheckins(studentId),
                         fetchAllInstructors()
                     ]);
                     
+                    console.log('Fetched checkins:', checkins);
+                    console.log('Fetched instructors:', instructors);
+                    
                     // Cache instructors
-                    instructorCache = instructorMap;
+                    instructorCache = instructors;
                     
                     // Map instructor ICs to checkins
                     const checkinsWithInstructor = checkins.map(checkin => {
                         const instructor = instructorCache[checkin.instructor_id];
+                        console.log(`Looking up instructor ${checkin.instructor_id}:`, instructor);
                         return {
                             ...checkin,
-                            instructor_ic: instructor ? instructor.icno : checkin.instructor_id,
+                            instructor_ic: instructor && instructor.icno ? instructor.icno : (instructor ? instructor.icno : checkin.instructor_id),
                             instructor_name: instructor ? instructor.name : checkin.instructor_id
                         };
                     });
+                    
+                    console.log('Checkins with instructor IC:', checkinsWithInstructor);
                     
                     currentCheckins = checkinsWithInstructor;
                     
@@ -835,8 +841,7 @@
             }
 
             /**
-             * Fetch all instructors from agents table
-             */
+             * Fetch all instructors from agents table             */
             async function fetchAllInstructors() {
                 try {
                     const response = await fetch(
@@ -850,16 +855,20 @@
                     );
 
                     if (!response.ok) {
-                        throw new Error('Failed to fetch instructors');
+                        console.warn('Failed to fetch instructors, status:', response.status);
+                        return {};
                     }
 
                     const data = await response.json();
+                    console.log('Raw instructor data from agents table:', data);
+                    
                     const map = {};
                     data.forEach(agent => {
                         map[agent.instructor_id] = {
                             icno: agent.icno || agent.instructor_id,
                             name: agent.agent_name
                         };
+                        console.log(`Mapped instructor ${agent.instructor_id} -> IC: ${agent.icno}`);
                     });
                     return map;
                 } catch (error) {
@@ -887,7 +896,9 @@
                             year: 'numeric'
                         });
                         
+                        // Use instructor_ic which should now contain the IC number from agents table
                         const instructorIc = checkin.instructor_ic || checkin.instructor_id || '-';
+                        console.log(`Row ${i+1}: instructor_ic = ${checkin.instructor_ic}, instructor_id = ${checkin.instructor_id}`);
                         
                         lessonHtml += `
                             <tr>
