@@ -329,6 +329,7 @@
                 
                 <div class="grid grid-cols-3 gap-3">
                     <button onclick="handleSearch()" 
+                            id="search-btn"
                             class="btn-primary-mobile flex items-center justify-center gap-2 text-sm py-3 min-h-[48px]">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
@@ -563,256 +564,399 @@
         </div>
     </div>
 
-    <!-- Combined JavaScript -->
+    <!-- JavaScript at the bottom - ensures all DOM elements are loaded -->
     <script>
-        // Configuration
-        const SUPABASE_URL = 'https://dorkygsgobhcagtqydjb.supabase.co';
-        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRvcmt5Z3Nnb2JoY2FndHF5ZGpiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjEwOTc0MzcsImV4cCI6MjA3NjY3MzQzN30.bNCo8Ijj2DIr-c34P7U-lb6QK69D8OzO2sCd6SOwaW0';
-
-        let currentStudentId = '';
-        let currentCheckins = [];
-        let instructorCache = {};
-        let isPrinting = false;
-
-        // Wait for DOM to be ready
-        document.addEventListener('DOMContentLoaded', function() {
-            const searchInput = document.getElementById('search-student-id');
-            if (searchInput) {
-                searchInput.addEventListener('keydown', function(e) {
-                    if (e.key === 'Enter') {
-                        e.preventDefault();
-                        handleSearch();
-                    }
-                });
-            }
-
-            // Auto-search if URL has student_id parameter
-            const urlParams = new URLSearchParams(window.location.search);
-            const studentId = urlParams.get('student_id');
-            if (studentId) {
-                document.getElementById('search-student-id').value = studentId;
-                handleSearch();
-            }
-        });
-
-        /**
-         * Handle search - called from onclick
-         */
-        function handleSearch() {
-            searchStudent();
-        }
-
-        /**
-         * Handle clear - called from onclick
-         */
-        function handleClear() {
-            clearSearch();
-        }
-
-        /**
-         * Handle print - called from onclick
-         */
-        function handlePrint() {
-            printRecord();
-        }
-
-        /**
-         * Handle close print modal - called from onclick
-         */
-        function handleClosePrintModal() {
-            closePrintModal();
-        }
-
-        /**
-         * Handle confirm print - called from onclick
-         */
-        function handleConfirmPrint() {
-            confirmPrint();
-        }
-
-        /**
-         * Search for student records
-         */
-        async function searchStudent() {
-            const studentId = document.getElementById('search-student-id').value.trim().toUpperCase();
+        (function() {
+            'use strict';
             
-            if (!studentId) {
-                showToast('Please enter a student IC number', 'warning');
-                return;
-            }
-
-            if (studentId.length < 4) {
-                showToast('Please enter at least 4 characters', 'warning');
-                return;
-            }
-
-            currentStudentId = studentId;
+            console.log('Script starting...');
             
-            // Show loading
-            document.getElementById('loading-state').classList.remove('hidden');
-            document.getElementById('form-container').classList.add('hidden');
-            document.getElementById('no-results').classList.add('hidden');
-            document.getElementById('print-btn').disabled = true;
+            // Configuration
+            const SUPABASE_URL = 'https://dorkygsgobhcagtqydjb.supabase.co';
+            const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRvcmt5Z3Nnb2JoY2FndHF5ZGpiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjEwOTc0MzcsImV4cCI6MjA3NjY3MzQzN30.bNCo8Ijj2DIr-c34P7U-lb6QK69D8OzO2sCd6SOwaW0';
 
-            try {
-                // Fetch check-ins and instructor data in parallel
-                const [checkins, instructorMap] = await Promise.all([
-                    fetchStudentCheckins(studentId),
-                    fetchAllInstructors()
-                ]);
+            let currentStudentId = '';
+            let currentCheckins = [];
+            let instructorCache = {};
+            let isPrinting = false;
+
+            // Wait for DOM to be ready
+            document.addEventListener('DOMContentLoaded', function() {
+                console.log('DOM loaded, initializing...');
                 
-                // Cache instructors
-                instructorCache = instructorMap;
+                const searchInput = document.getElementById('search-student-id');
+                if (searchInput) {
+                    searchInput.addEventListener('keydown', function(e) {
+                        if (e.key === 'Enter') {
+                            e.preventDefault();
+                            handleSearch();
+                        }
+                    });
+                }
+
+                // Auto-search if URL has student_id parameter
+                const urlParams = new URLSearchParams(window.location.search);
+                const studentId = urlParams.get('student_id');
+                if (studentId) {
+                    document.getElementById('search-student-id').value = studentId;
+                    handleSearch();
+                }
                 
-                // Map instructor ICs to checkins
-                const checkinsWithInstructor = checkins.map(checkin => {
-                    const instructor = instructorCache[checkin.instructor_id];
-                    return {
-                        ...checkin,
-                        instructor_ic: instructor ? instructor.icno : checkin.instructor_id,
-                        instructor_name: instructor ? instructor.name : checkin.instructor_id
-                    };
-                });
+                console.log('Initialization complete');
+            });
+
+            /**
+             * Handle search - called from onclick
+             */
+            window.handleSearch = function() {
+                console.log('handleSearch called');
+                searchStudent();
+            };
+
+            /**
+             * Handle clear - called from onclick
+             */
+            window.handleClear = function() {
+                console.log('handleClear called');
+                clearSearch();
+            };
+
+            /**
+             * Handle print - called from onclick
+             */
+            window.handlePrint = function() {
+                console.log('handlePrint called');
+                printRecord();
+            };
+
+            /**
+             * Handle close print modal - called from onclick
+             */
+            window.handleClosePrintModal = function() {
+                console.log('handleClosePrintModal called');
+                closePrintModal();
+            };
+
+            /**
+             * Handle confirm print - called from onclick
+             */
+            window.handleConfirmPrint = function() {
+                console.log('handleConfirmPrint called');
+                confirmPrint();
+            };
+
+            /**
+             * Search for student records
+             */
+            async function searchStudent() {
+                console.log('searchStudent called');
+                const studentId = document.getElementById('search-student-id').value.trim().toUpperCase();
                 
-                currentCheckins = checkinsWithInstructor;
-                
-                if (checkinsWithInstructor.length === 0) {
-                    document.getElementById('loading-state').classList.add('hidden');
-                    document.getElementById('no-results').classList.remove('hidden');
+                if (!studentId) {
+                    showToast('Please enter a student IC number', 'warning');
                     return;
                 }
 
-                // Populate the full form
-                populateForm(checkinsWithInstructor);
+                if (studentId.length < 4) {
+                    showToast('Please enter at least 4 characters', 'warning');
+                    return;
+                }
+
+                currentStudentId = studentId;
                 
-                document.getElementById('loading-state').classList.add('hidden');
-                document.getElementById('form-container').classList.remove('hidden');
-                document.getElementById('print-btn').disabled = false;
+                // Show loading
+                document.getElementById('loading-state').classList.remove('hidden');
+                document.getElementById('form-container').classList.add('hidden');
+                document.getElementById('no-results').classList.add('hidden');
+                document.getElementById('print-btn').disabled = true;
 
-            } catch (error) {
-                console.error('Error searching:', error);
-                document.getElementById('loading-state').classList.add('hidden');
-                showToast('Error loading records. Please try again.', 'error');
-            }
-        }
-
-        /**
-         * Fetch student check-ins from Supabase
-         */
-        async function fetchStudentCheckins(studentId) {
-            try {
-                const response = await fetch(
-                    `${SUPABASE_URL}/rest/v1/check_ins?student_id=eq.${encodeURIComponent(studentId)}&session=eq.KPP03&order=timestamp.asc`,
-                    {
-                        headers: {
-                            'apikey': SUPABASE_ANON_KEY,
-                            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
-                        }
-                    }
-                );
-
-                if (!response.ok) {
-                    throw new Error('Failed to fetch records');
-                }
-
-                return await response.json();
-            } catch (error) {
-                console.error('Error fetching checkins:', error);
-                throw error;
-            }
-        }
-
-        /**
-         * Fetch all instructors from agents table
-         */
-        async function fetchAllInstructors() {
-            try {
-                const response = await fetch(
-                    `${SUPABASE_URL}/rest/v1/agents?select=instructor_id,icno,agent_name`,
-                    {
-                        headers: {
-                            'apikey': SUPABASE_ANON_KEY,
-                            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
-                        }
-                    }
-                );
-
-                if (!response.ok) {
-                    throw new Error('Failed to fetch instructors');
-                }
-
-                const data = await response.json();
-                const map = {};
-                data.forEach(agent => {
-                    map[agent.instructor_id] = {
-                        icno: agent.icno || agent.instructor_id,
-                        name: agent.agent_name
-                    };
-                });
-                return map;
-            } catch (error) {
-                console.error('Error fetching instructors:', error);
-                return {};
-            }
-        }
-
-        /**
-         * Populate the full KPP03 form
-         */
-        function populateForm(checkins) {
-            // Populate lesson rows (10 rows)
-            const lessonTbody = document.getElementById('lesson-rows');
-            const maxLessonRows = 10;
-            let lessonHtml = '';
-            
-            for (let i = 0; i < maxLessonRows; i++) {
-                if (i < checkins.length) {
-                    const checkin = checkins[i];
-                    const date = new Date(checkin.timestamp);
-                    const formattedDate = date.toLocaleDateString('en-GB', {
-                        day: '2-digit',
-                        month: '2-digit',
-                        year: 'numeric'
+                try {
+                    // Fetch check-ins and instructor data in parallel
+                    const [checkins, instructorMap] = await Promise.all([
+                        fetchStudentCheckins(studentId),
+                        fetchAllInstructors()
+                    ]);
+                    
+                    // Cache instructors
+                    instructorCache = instructorMap;
+                    
+                    // Map instructor ICs to checkins
+                    const checkinsWithInstructor = checkins.map(checkin => {
+                        const instructor = instructorCache[checkin.instructor_id];
+                        return {
+                            ...checkin,
+                            instructor_ic: instructor ? instructor.icno : checkin.instructor_id,
+                            instructor_name: instructor ? instructor.name : checkin.instructor_id
+                        };
                     });
                     
-                    const instructorIc = checkin.instructor_ic || checkin.instructor_id || '-';
+                    currentCheckins = checkinsWithInstructor;
                     
-                    lessonHtml += `
-                        <tr style="background:#f0fdf4;">
-                            <td>${formattedDate}</td>
-                            <td>${checkin.start_time || '-'}</td>
-                            <td>${checkin.end_time || '-'}</td>
-                            <td>${checkin.car_plate || '-'}</td>
-                            <td>${checkin.duration || 0}</td>
-                            <td><strong>KPP03</strong></td>
-                            <td style="min-height:25px;"></td>
-                            <td>${instructorIc}</td>
-                            <td style="min-height:25px;"></td>
-                        </tr>
-                    `;
-                } else {
-                    lessonHtml += `
+                    if (checkinsWithInstructor.length === 0) {
+                        document.getElementById('loading-state').classList.add('hidden');
+                        document.getElementById('no-results').classList.remove('hidden');
+                        return;
+                    }
+
+                    // Populate the full form
+                    populateForm(checkinsWithInstructor);
+                    
+                    document.getElementById('loading-state').classList.add('hidden');
+                    document.getElementById('form-container').classList.remove('hidden');
+                    document.getElementById('print-btn').disabled = false;
+
+                } catch (error) {
+                    console.error('Error searching:', error);
+                    document.getElementById('loading-state').classList.add('hidden');
+                    showToast('Error loading records. Please try again.', 'error');
+                }
+            }
+
+            /**
+             * Fetch student check-ins from Supabase
+             */
+            async function fetchStudentCheckins(studentId) {
+                try {
+                    const response = await fetch(
+                        `${SUPABASE_URL}/rest/v1/check_ins?student_id=eq.${encodeURIComponent(studentId)}&session=eq.KPP03&order=timestamp.asc`,
+                        {
+                            headers: {
+                                'apikey': SUPABASE_ANON_KEY,
+                                'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+                            }
+                        }
+                    );
+
+                    if (!response.ok) {
+                        throw new Error('Failed to fetch records');
+                    }
+
+                    return await response.json();
+                } catch (error) {
+                    console.error('Error fetching checkins:', error);
+                    throw error;
+                }
+            }
+
+            /**
+             * Fetch all instructors from agents table
+             */
+            async function fetchAllInstructors() {
+                try {
+                    const response = await fetch(
+                        `${SUPABASE_URL}/rest/v1/agents?select=instructor_id,icno,agent_name`,
+                        {
+                            headers: {
+                                'apikey': SUPABASE_ANON_KEY,
+                                'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+                            }
+                        }
+                    );
+
+                    if (!response.ok) {
+                        throw new Error('Failed to fetch instructors');
+                    }
+
+                    const data = await response.json();
+                    const map = {};
+                    data.forEach(agent => {
+                        map[agent.instructor_id] = {
+                            icno: agent.icno || agent.instructor_id,
+                            name: agent.agent_name
+                        };
+                    });
+                    return map;
+                } catch (error) {
+                    console.error('Error fetching instructors:', error);
+                    return {};
+                }
+            }
+
+            /**
+             * Populate the full KPP03 form
+             */
+            function populateForm(checkins) {
+                // Populate lesson rows (10 rows)
+                const lessonTbody = document.getElementById('lesson-rows');
+                const maxLessonRows = 10;
+                let lessonHtml = '';
+                
+                for (let i = 0; i < maxLessonRows; i++) {
+                    if (i < checkins.length) {
+                        const checkin = checkins[i];
+                        const date = new Date(checkin.timestamp);
+                        const formattedDate = date.toLocaleDateString('en-GB', {
+                            day: '2-digit',
+                            month: '2-digit',
+                            year: 'numeric'
+                        });
+                        
+                        const instructorIc = checkin.instructor_ic || checkin.instructor_id || '-';
+                        
+                        lessonHtml += `
+                            <tr style="background:#f0fdf4;">
+                                <td>${formattedDate}</td>
+                                <td>${checkin.start_time || '-'}</td>
+                                <td>${checkin.end_time || '-'}</td>
+                                <td>${checkin.car_plate || '-'}</td>
+                                <td>${checkin.duration || 0}</td>
+                                <td><strong>KPP03</strong></td>
+                                <td style="min-height:25px;"></td>
+                                <td>${instructorIc}</td>
+                                <td style="min-height:25px;"></td>
+                            </tr>
+                        `;
+                    } else {
+                        lessonHtml += `
+                            <tr style="background:#f9fafb;">
+                                <td style="color:#9ca3af; font-size:10px;"></td>
+                                <td style="color:#9ca3af; font-size:10px;"></td>
+                                <td style="color:#9ca3af; font-size:10px;"></td>
+                                <td style="color:#9ca3af; font-size:10px;"></td>
+                                <td style="color:#9ca3af; font-size:10px;"></td>
+                                <td style="color:#9ca3af; font-size:10px;"></td>
+                                <td style="color:#9ca3af; font-size:10px;"></td>
+                                <td style="color:#9ca3af; font-size:10px;"></td>
+                                <td style="color:#9ca3af; font-size:10px;"></td>
+                            </tr>
+                        `;
+                    }
+                }
+                lessonTbody.innerHTML = lessonHtml;
+
+                // Populate assessment rows (2 rows)
+                const assessmentTbody = document.getElementById('assessment-rows');
+                const maxAssessmentRows = 2;
+                let assessmentHtml = '';
+                
+                for (let i = 0; i < maxAssessmentRows; i++) {
+                    assessmentHtml += `
                         <tr style="background:#f9fafb;">
                             <td style="color:#9ca3af; font-size:10px;"></td>
                             <td style="color:#9ca3af; font-size:10px;"></td>
                             <td style="color:#9ca3af; font-size:10px;"></td>
                             <td style="color:#9ca3af; font-size:10px;"></td>
                             <td style="color:#9ca3af; font-size:10px;"></td>
-                            <td style="color:#9ca3af; font-size:10px;"></td>
-                            <td style="color:#9ca3af; font-size:10px;"></td>
+                            <td colspan="2" style="color:#9ca3af; font-size:10px;"></td>
                             <td style="color:#9ca3af; font-size:10px;"></td>
                             <td style="color:#9ca3af; font-size:10px;"></td>
                         </tr>
                     `;
                 }
-            }
-            lessonTbody.innerHTML = lessonHtml;
+                assessmentTbody.innerHTML = assessmentHtml;
 
-            // Populate assessment rows (2 rows)
-            const assessmentTbody = document.getElementById('assessment-rows');
-            const maxAssessmentRows = 2;
-            let assessmentHtml = '';
+                // Reset checkboxes
+                document.getElementById('declaration-competency').checked = false;
+                document.getElementById('declaration-retraining').checked = false;
+            }
+
+            /**
+             * Clear search results
+             */
+            function clearSearch() {
+                document.getElementById('search-student-id').value = '';
+                document.getElementById('form-container').classList.add('hidden');
+                document.getElementById('no-results').classList.add('hidden');
+                document.getElementById('loading-state').classList.add('hidden');
+                document.getElementById('print-btn').disabled = true;
+                currentStudentId = '';
+                currentCheckins = [];
+                
+                // Reset checkboxes
+                document.getElementById('declaration-competency').checked = false;
+                document.getElementById('declaration-retraining').checked = false;
+            }
+
+            /**
+             * Print the record
+             */
+            function printRecord() {
+                if (currentCheckins.length === 0) {
+                    showToast('No records to print', 'warning');
+                    return;
+                }
+                if (isPrinting) return;
+                showPrintModal();
+            }
+
+            /**
+             * Show print confirmation modal
+             */
+            function showPrintModal() {
+                const modal = document.getElementById('print-modal');
+                modal.classList.remove('hidden');
+                const content = modal.querySelector('.modal-mobile');
+                if (content) {
+                    setTimeout(() => content.classList.add('active'), 10);
+                }
+            }
+
+            /**
+             * Close print modal
+             */
+            function closePrintModal() {
+                const modal = document.getElementById('print-modal');
+                const content = modal.querySelector('.modal-mobile');
+                if (content) {
+                    content.classList.remove('active');
+                    setTimeout(() => modal.classList.add('hidden'), 300);
+                } else {
+                    modal.classList.add('hidden');
+                }
+            }
+
+            /**
+             * Confirm and execute print
+             */
+            function confirmPrint() {
+                isPrinting = true;
+                closePrintModal();
+                setTimeout(() => {
+                    window.print();
+                    setTimeout(() => {
+                        isPrinting = false;
+                    }, 1000);
+                }, 300);
+            }
+
+            /**
+             * Show toast notification
+             */
+            function showToast(message, type = 'info') {
+                const colors = {
+                    info: 'bg-blue-100 border-blue-500 text-blue-800',
+                    success: 'bg-green-100 border-green-500 text-green-800',
+                    warning: 'bg-amber-100 border-amber-500 text-amber-800',
+                    error: 'bg-red-100 border-red-500 text-red-800'
+                };
+
+                const toast = document.createElement('div');
+                toast.className = `fixed top-20 left-4 right-4 z-50 border-l-4 p-4 rounded-lg shadow-lg transition-all duration-300 ${colors[type] || colors.info}`;
+                toast.innerHTML = `
+                    <div class="flex items-start">
+                        <div class="flex-1">
+                            <p class="text-sm font-medium">${message}</p>
+                        </div>
+                        <button onclick="this.parentElement.remove()" class="ml-4 text-gray-500 hover:text-gray-700">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                            </svg>
+                        </button>
+                    </div>
+                `;
+
+                document.body.appendChild(toast);
+
+                setTimeout(() => {
+                    toast.style.opacity = '0';
+                    toast.style.transform = 'translateX(100px)';
+                    setTimeout(() => toast.remove(), 300);
+                }, 4000);
+            }
+
+            console.log('Script loaded, functions registered on window');
             
-            for (let i = 0; i < maxAssessmentRows; i++) {
-                assessmentHtml += `
-                    <tr style="background:#f9fafb
+        })();
+    </script>
+</body>
+</html>
