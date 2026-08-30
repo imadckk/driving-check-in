@@ -34,7 +34,6 @@
             padding-bottom: env(safe-area-inset-bottom);
         }
         
-        /* Form container - matches image layout */
         .form-container {
             max-width: 210mm;
             margin: 0 auto;
@@ -104,7 +103,6 @@
             background: #d1d5db;
         }
         
-        /* Form styling - matches image exactly */
         .kpp03-form {
             font-size: 12px;
             line-height: 1.4;
@@ -169,7 +167,7 @@
             display: flex;
             align-items: flex-start;
             gap: 8px;
-            padding: 4px 0;
+            padding: 4px 12px;
         }
         
         .kpp03-form .checkbox-group input[type="checkbox"] {
@@ -186,7 +184,6 @@
             line-height: 1.4;
         }
         
-        /* Mobile search section */
         .search-section {
             max-width: 210mm;
             margin: 0 auto 16px;
@@ -257,7 +254,6 @@
             }
         }
         
-        /* Spinner animation */
         @keyframes spin {
             to { transform: rotate(360deg); }
         }
@@ -350,21 +346,21 @@
                 </div>
                 
                 <div class="grid grid-cols-3 gap-3">
-                    <button onclick="searchStudent()" 
+                    <button onclick="window.searchStudent()" 
                             class="btn-primary-mobile flex items-center justify-center gap-2 text-sm py-3 min-h-[48px]">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
                         </svg>
                         Search
                     </button>
-                    <button onclick="clearSearch()" 
+                    <button onclick="window.clearSearch()" 
                             class="btn-secondary-mobile flex items-center justify-center gap-2 text-sm py-3 min-h-[48px]">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                         </svg>
                         Clear
                     </button>
-                    <button onclick="printRecord()" 
+                    <button onclick="window.printRecord()" 
                             id="print-btn"
                             class="btn-secondary-mobile flex items-center justify-center gap-2 text-sm py-3 min-h-[48px] bg-[#290C73] text-white hover:bg-[#1e0854] disabled:opacity-50 disabled:cursor-not-allowed"
                             disabled>
@@ -495,11 +491,11 @@
                 <div class="declaration-text">
                     Saya telah menguji dan menilai kemahiran memandu bagi pelajar di atas dan mengesahkan pelajar
                 </div>
-                <div class="checkbox-group" style="padding:4px 12px;">
+                <div class="checkbox-group">
                     <input type="checkbox" id="declaration-competency">
                     <label for="declaration-competency">Layak untuk menduduki ujian kekompetenan memandu yang dikendalikan oleh JPJ</label>
                 </div>
-                <div class="checkbox-group" style="padding:4px 12px;">
+                <div class="checkbox-group">
                     <input type="checkbox" id="declaration-retraining">
                     <label for="declaration-retraining">Perlu latihan KPP02 atau/dan KPP03 dan ujian kelayakan/penilaian semula sebelum layak menduduki ujian kekompetenan memandu</label>
                 </div>
@@ -561,7 +557,7 @@
     </div>
 
     <!-- Print Modal -->
-    <div id="print-modal" class="fixed inset-0 bg-black/50 modal-backdrop hidden z-50" onclick="if(event.target === this) closePrintModal()">
+    <div id="print-modal" class="fixed inset-0 bg-black/50 modal-backdrop hidden z-50" onclick="if(event.target === this) window.closePrintModal()">
         <div class="modal-mobile" id="print-modal-content">
             <div class="text-center">
                 <div class="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -572,11 +568,11 @@
                 <h3 class="text-xl font-bold text-gray-900 mb-2">Print Record</h3>
                 <p class="text-gray-600 mb-6">Print the KPP03 lesson record for this student?</p>
                 <div class="grid grid-cols-2 gap-3">
-                    <button onclick="closePrintModal()" 
+                    <button onclick="window.closePrintModal()" 
                             class="py-3 px-4 bg-gray-200 text-gray-800 font-semibold rounded-lg hover:bg-gray-300 transition-colors">
                         Cancel
                     </button>
-                    <button onclick="confirmPrint()" 
+                    <button onclick="window.confirmPrint()" 
                             class="py-3 px-4 bg-[#290C73] text-white font-semibold rounded-lg hover:bg-[#1e0854] transition-colors">
                         Print
                     </button>
