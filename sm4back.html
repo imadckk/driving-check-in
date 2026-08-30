@@ -262,24 +262,6 @@
             animation: spin 1s linear infinite;
         }
         
-        .summary-card {
-            background: linear-gradient(135deg, #290C73 0%, #1e0854 100%);
-            color: white;
-            border-radius: 12px;
-            padding: 16px 20px;
-            margin-bottom: 16px;
-        }
-        
-        .summary-card .label {
-            font-size: 12px;
-            opacity: 0.8;
-        }
-        
-        .summary-card .value {
-            font-size: 18px;
-            font-weight: 700;
-        }
-        
         .modal-backdrop {
             backdrop-filter: blur(4px);
             -webkit-backdrop-filter: blur(4px);
@@ -346,21 +328,21 @@
                 </div>
                 
                 <div class="grid grid-cols-3 gap-3">
-                    <button onclick="window.searchStudent()" 
+                    <button onclick="handleSearch()" 
                             class="btn-primary-mobile flex items-center justify-center gap-2 text-sm py-3 min-h-[48px]">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
                         </svg>
                         Search
                     </button>
-                    <button onclick="window.clearSearch()" 
+                    <button onclick="handleClear()" 
                             class="btn-secondary-mobile flex items-center justify-center gap-2 text-sm py-3 min-h-[48px]">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                         </svg>
                         Clear
                     </button>
-                    <button onclick="window.printRecord()" 
+                    <button onclick="handlePrint()" 
                             id="print-btn"
                             class="btn-secondary-mobile flex items-center justify-center gap-2 text-sm py-3 min-h-[48px] bg-[#290C73] text-white hover:bg-[#1e0854] disabled:opacity-50 disabled:cursor-not-allowed"
                             disabled>
@@ -557,7 +539,7 @@
     </div>
 
     <!-- Print Modal -->
-    <div id="print-modal" class="fixed inset-0 bg-black/50 modal-backdrop hidden z-50" onclick="if(event.target === this) window.closePrintModal()">
+    <div id="print-modal" class="fixed inset-0 bg-black/50 modal-backdrop hidden z-50" onclick="if(event.target === this) handleClosePrintModal()">
         <div class="modal-mobile" id="print-modal-content">
             <div class="text-center">
                 <div class="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -568,11 +550,11 @@
                 <h3 class="text-xl font-bold text-gray-900 mb-2">Print Record</h3>
                 <p class="text-gray-600 mb-6">Print the KPP03 lesson record for this student?</p>
                 <div class="grid grid-cols-2 gap-3">
-                    <button onclick="window.closePrintModal()" 
+                    <button onclick="handleClosePrintModal()" 
                             class="py-3 px-4 bg-gray-200 text-gray-800 font-semibold rounded-lg hover:bg-gray-300 transition-colors">
                         Cancel
                     </button>
-                    <button onclick="window.confirmPrint()" 
+                    <button onclick="handleConfirmPrint()" 
                             class="py-3 px-4 bg-[#290C73] text-white font-semibold rounded-lg hover:bg-[#1e0854] transition-colors">
                         Print
                     </button>
@@ -581,6 +563,256 @@
         </div>
     </div>
 
-    <script src="student-record.js"></script>
-</body>
-</html>
+    <!-- Combined JavaScript -->
+    <script>
+        // Configuration
+        const SUPABASE_URL = 'https://dorkygsgobhcagtqydjb.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRvcmt5Z3Nnb2JoY2FndHF5ZGpiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjEwOTc0MzcsImV4cCI6MjA3NjY3MzQzN30.bNCo8Ijj2DIr-c34P7U-lb6QK69D8OzO2sCd6SOwaW0';
+
+        let currentStudentId = '';
+        let currentCheckins = [];
+        let instructorCache = {};
+        let isPrinting = false;
+
+        // Wait for DOM to be ready
+        document.addEventListener('DOMContentLoaded', function() {
+            const searchInput = document.getElementById('search-student-id');
+            if (searchInput) {
+                searchInput.addEventListener('keydown', function(e) {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleSearch();
+                    }
+                });
+            }
+
+            // Auto-search if URL has student_id parameter
+            const urlParams = new URLSearchParams(window.location.search);
+            const studentId = urlParams.get('student_id');
+            if (studentId) {
+                document.getElementById('search-student-id').value = studentId;
+                handleSearch();
+            }
+        });
+
+        /**
+         * Handle search - called from onclick
+         */
+        function handleSearch() {
+            searchStudent();
+        }
+
+        /**
+         * Handle clear - called from onclick
+         */
+        function handleClear() {
+            clearSearch();
+        }
+
+        /**
+         * Handle print - called from onclick
+         */
+        function handlePrint() {
+            printRecord();
+        }
+
+        /**
+         * Handle close print modal - called from onclick
+         */
+        function handleClosePrintModal() {
+            closePrintModal();
+        }
+
+        /**
+         * Handle confirm print - called from onclick
+         */
+        function handleConfirmPrint() {
+            confirmPrint();
+        }
+
+        /**
+         * Search for student records
+         */
+        async function searchStudent() {
+            const studentId = document.getElementById('search-student-id').value.trim().toUpperCase();
+            
+            if (!studentId) {
+                showToast('Please enter a student IC number', 'warning');
+                return;
+            }
+
+            if (studentId.length < 4) {
+                showToast('Please enter at least 4 characters', 'warning');
+                return;
+            }
+
+            currentStudentId = studentId;
+            
+            // Show loading
+            document.getElementById('loading-state').classList.remove('hidden');
+            document.getElementById('form-container').classList.add('hidden');
+            document.getElementById('no-results').classList.add('hidden');
+            document.getElementById('print-btn').disabled = true;
+
+            try {
+                // Fetch check-ins and instructor data in parallel
+                const [checkins, instructorMap] = await Promise.all([
+                    fetchStudentCheckins(studentId),
+                    fetchAllInstructors()
+                ]);
+                
+                // Cache instructors
+                instructorCache = instructorMap;
+                
+                // Map instructor ICs to checkins
+                const checkinsWithInstructor = checkins.map(checkin => {
+                    const instructor = instructorCache[checkin.instructor_id];
+                    return {
+                        ...checkin,
+                        instructor_ic: instructor ? instructor.icno : checkin.instructor_id,
+                        instructor_name: instructor ? instructor.name : checkin.instructor_id
+                    };
+                });
+                
+                currentCheckins = checkinsWithInstructor;
+                
+                if (checkinsWithInstructor.length === 0) {
+                    document.getElementById('loading-state').classList.add('hidden');
+                    document.getElementById('no-results').classList.remove('hidden');
+                    return;
+                }
+
+                // Populate the full form
+                populateForm(checkinsWithInstructor);
+                
+                document.getElementById('loading-state').classList.add('hidden');
+                document.getElementById('form-container').classList.remove('hidden');
+                document.getElementById('print-btn').disabled = false;
+
+            } catch (error) {
+                console.error('Error searching:', error);
+                document.getElementById('loading-state').classList.add('hidden');
+                showToast('Error loading records. Please try again.', 'error');
+            }
+        }
+
+        /**
+         * Fetch student check-ins from Supabase
+         */
+        async function fetchStudentCheckins(studentId) {
+            try {
+                const response = await fetch(
+                    `${SUPABASE_URL}/rest/v1/check_ins?student_id=eq.${encodeURIComponent(studentId)}&session=eq.KPP03&order=timestamp.asc`,
+                    {
+                        headers: {
+                            'apikey': SUPABASE_ANON_KEY,
+                            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+                        }
+                    }
+                );
+
+                if (!response.ok) {
+                    throw new Error('Failed to fetch records');
+                }
+
+                return await response.json();
+            } catch (error) {
+                console.error('Error fetching checkins:', error);
+                throw error;
+            }
+        }
+
+        /**
+         * Fetch all instructors from agents table
+         */
+        async function fetchAllInstructors() {
+            try {
+                const response = await fetch(
+                    `${SUPABASE_URL}/rest/v1/agents?select=instructor_id,icno,agent_name`,
+                    {
+                        headers: {
+                            'apikey': SUPABASE_ANON_KEY,
+                            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+                        }
+                    }
+                );
+
+                if (!response.ok) {
+                    throw new Error('Failed to fetch instructors');
+                }
+
+                const data = await response.json();
+                const map = {};
+                data.forEach(agent => {
+                    map[agent.instructor_id] = {
+                        icno: agent.icno || agent.instructor_id,
+                        name: agent.agent_name
+                    };
+                });
+                return map;
+            } catch (error) {
+                console.error('Error fetching instructors:', error);
+                return {};
+            }
+        }
+
+        /**
+         * Populate the full KPP03 form
+         */
+        function populateForm(checkins) {
+            // Populate lesson rows (10 rows)
+            const lessonTbody = document.getElementById('lesson-rows');
+            const maxLessonRows = 10;
+            let lessonHtml = '';
+            
+            for (let i = 0; i < maxLessonRows; i++) {
+                if (i < checkins.length) {
+                    const checkin = checkins[i];
+                    const date = new Date(checkin.timestamp);
+                    const formattedDate = date.toLocaleDateString('en-GB', {
+                        day: '2-digit',
+                        month: '2-digit',
+                        year: 'numeric'
+                    });
+                    
+                    const instructorIc = checkin.instructor_ic || checkin.instructor_id || '-';
+                    
+                    lessonHtml += `
+                        <tr style="background:#f0fdf4;">
+                            <td>${formattedDate}</td>
+                            <td>${checkin.start_time || '-'}</td>
+                            <td>${checkin.end_time || '-'}</td>
+                            <td>${checkin.car_plate || '-'}</td>
+                            <td>${checkin.duration || 0}</td>
+                            <td><strong>KPP03</strong></td>
+                            <td style="min-height:25px;"></td>
+                            <td>${instructorIc}</td>
+                            <td style="min-height:25px;"></td>
+                        </tr>
+                    `;
+                } else {
+                    lessonHtml += `
+                        <tr style="background:#f9fafb;">
+                            <td style="color:#9ca3af; font-size:10px;"></td>
+                            <td style="color:#9ca3af; font-size:10px;"></td>
+                            <td style="color:#9ca3af; font-size:10px;"></td>
+                            <td style="color:#9ca3af; font-size:10px;"></td>
+                            <td style="color:#9ca3af; font-size:10px;"></td>
+                            <td style="color:#9ca3af; font-size:10px;"></td>
+                            <td style="color:#9ca3af; font-size:10px;"></td>
+                            <td style="color:#9ca3af; font-size:10px;"></td>
+                            <td style="color:#9ca3af; font-size:10px;"></td>
+                        </tr>
+                    `;
+                }
+            }
+            lessonTbody.innerHTML = lessonHtml;
+
+            // Populate assessment rows (2 rows)
+            const assessmentTbody = document.getElementById('assessment-rows');
+            const maxAssessmentRows = 2;
+            let assessmentHtml = '';
+            
+            for (let i = 0; i < maxAssessmentRows; i++) {
+                assessmentHtml += `
+                    <tr style="background:#f9fafb
