@@ -5,6 +5,7 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 let currentStudentId = '';
 let currentCheckins = [];
 let instructorCache = {};
+let isPrinting = false;
 
 // Search on Enter key
 document.addEventListener('DOMContentLoaded', function() {
@@ -47,9 +48,9 @@ async function searchStudent() {
     
     // Show loading
     document.getElementById('loading-state').classList.remove('hidden');
-    document.getElementById('student-info').classList.add('hidden');
-    document.getElementById('table-container').classList.add('hidden');
+    document.getElementById('form-container').classList.add('hidden');
     document.getElementById('no-results').classList.add('hidden');
+    document.getElementById('print-btn').disabled = true;
 
     try {
         // Fetch check-ins and instructor data in parallel
@@ -66,7 +67,8 @@ async function searchStudent() {
             const instructor = instructorCache[checkin.instructor_id];
             return {
                 ...checkin,
-                instructor_ic: instructor ? instructor.icno : checkin.instructor_id
+                instructor_ic: instructor ? instructor.icno : checkin.instructor_id,
+                instructor_name: instructor ? instructor.name : checkin.instructor_id
             };
         });
         
@@ -78,15 +80,12 @@ async function searchStudent() {
             return;
         }
 
-        // Update student info
-        displayStudentInfo(checkinsWithInstructor);
-        
-        // Populate table
-        populateTable(checkinsWithInstructor);
+        // Populate the full form
+        populateForm(checkinsWithInstructor);
         
         document.getElementById('loading-state').classList.add('hidden');
-        document.getElementById('student-info').classList.remove('hidden');
-        document.getElementById('table-container').classList.remove('hidden');
+        document.getElementById('form-container').classList.remove('hidden');
+        document.getElementById('print-btn').disabled = false;
 
     } catch (error) {
         console.error('Error searching:', error);
@@ -156,29 +155,15 @@ async function fetchAllInstructors() {
 }
 
 /**
- * Display student information summary
+ * Populate the full KPP03 form
  */
-function displayStudentInfo(checkins) {
-    const studentName = checkins[0]?.student_name || 'N/A';
-    const studentId = checkins[0]?.student_id || 'N/A';
-    const totalLessons = checkins.length;
-    const totalHours = checkins.reduce((sum, c) => sum + parseFloat(c.duration || 0), 0);
-
-    document.getElementById('student-name-display').textContent = studentName;
-    document.getElementById('student-id-display').textContent = studentId;
-    document.getElementById('total-lessons-display').textContent = totalLessons;
-    document.getElementById('total-hours-display').textContent = totalHours.toFixed(1);
-}
-
-/**
- * Populate the lesson table
- */
-function populateTable(checkins) {
-    const tbody = document.getElementById('table-body');
-    const maxRows = 10;
-    let html = '';
+function populateForm(checkins) {
+    // Populate lesson rows (10 rows)
+    const lessonTbody = document.getElementById('lesson-rows');
+    const maxLessonRows = 10;
+    let lessonHtml = '';
     
-    for (let i = 0; i < maxRows; i++) {
+    for (let i = 0; i < maxLessonRows; i++) {
         if (i < checkins.length) {
             const checkin = checkins[i];
             const date = new Date(checkin.timestamp);
@@ -188,40 +173,63 @@ function populateTable(checkins) {
                 year: 'numeric'
             });
             
-            // Get instructor IC from cached data
             const instructorIc = checkin.instructor_ic || checkin.instructor_id || '-';
             
-            html += `
-                <tr class="filled-cell">
+            lessonHtml += `
+                <tr style="background:#f0fdf4;">
                     <td>${formattedDate}</td>
                     <td>${checkin.start_time || '-'}</td>
                     <td>${checkin.end_time || '-'}</td>
                     <td>${checkin.car_plate || '-'}</td>
                     <td>${checkin.duration || 0}</td>
                     <td><strong>KPP03</strong></td>
-                    <td class="signature-cell"></td>
+                    <td style="min-height:25px;"></td>
                     <td>${instructorIc}</td>
-                    <td class="signature-cell"></td>
+                    <td style="min-height:25px;"></td>
                 </tr>
             `;
         } else {
-            html += `
-                <tr>
-                    <td class="empty-cell"></td>
-                    <td class="empty-cell"></td>
-                    <td class="empty-cell"></td>
-                    <td class="empty-cell"></td>
-                    <td class="empty-cell"></td>
-                    <td class="empty-cell"></td>
-                    <td class="empty-cell"></td>
-                    <td class="empty-cell"></td>
-                    <td class="empty-cell"></td>
+            lessonHtml += `
+                <tr style="background:#f9fafb;">
+                    <td style="color:#9ca3af; font-size:10px;"></td>
+                    <td style="color:#9ca3af; font-size:10px;"></td>
+                    <td style="color:#9ca3af; font-size:10px;"></td>
+                    <td style="color:#9ca3af; font-size:10px;"></td>
+                    <td style="color:#9ca3af; font-size:10px;"></td>
+                    <td style="color:#9ca3af; font-size:10px;"></td>
+                    <td style="color:#9ca3af; font-size:10px;"></td>
+                    <td style="color:#9ca3af; font-size:10px;"></td>
+                    <td style="color:#9ca3af; font-size:10px;"></td>
                 </tr>
             `;
         }
     }
+    lessonTbody.innerHTML = lessonHtml;
 
-    tbody.innerHTML = html;
+    // Populate assessment rows (2 rows)
+    const assessmentTbody = document.getElementById('assessment-rows');
+    const maxAssessmentRows = 2;
+    let assessmentHtml = '';
+    
+    for (let i = 0; i < maxAssessmentRows; i++) {
+        assessmentHtml += `
+            <tr style="background:#f9fafb;">
+                <td style="color:#9ca3af; font-size:10px;"></td>
+                <td style="color:#9ca3af; font-size:10px;"></td>
+                <td style="color:#9ca3af; font-size:10px;"></td>
+                <td style="color:#9ca3af; font-size:10px;"></td>
+                <td style="color:#9ca3af; font-size:10px;"></td>
+                <td colspan="2" style="color:#9ca3af; font-size:10px;"></td>
+                <td style="color:#9ca3af; font-size:10px;"></td>
+                <td style="color:#9ca3af; font-size:10px;"></td>
+            </tr>
+        `;
+    }
+    assessmentTbody.innerHTML = assessmentHtml;
+
+    // Reset checkboxes
+    document.getElementById('declaration-competency').checked = false;
+    document.getElementById('declaration-retraining').checked = false;
 }
 
 /**
@@ -229,17 +237,16 @@ function populateTable(checkins) {
  */
 function clearSearch() {
     document.getElementById('search-student-id').value = '';
-    document.getElementById('student-info').classList.add('hidden');
-    document.getElementById('table-container').classList.add('hidden');
+    document.getElementById('form-container').classList.add('hidden');
     document.getElementById('no-results').classList.add('hidden');
     document.getElementById('loading-state').classList.add('hidden');
+    document.getElementById('print-btn').disabled = true;
     currentStudentId = '';
     currentCheckins = [];
     
     // Reset checkboxes
     document.getElementById('declaration-competency').checked = false;
     document.getElementById('declaration-retraining').checked = false;
-    document.getElementById('declaration-confirm').checked = false;
 }
 
 /**
@@ -250,6 +257,7 @@ function printRecord() {
         showToast('No records to print', 'warning');
         return;
     }
+    if (isPrinting) return;
     showPrintModal();
 }
 
@@ -283,9 +291,13 @@ function closePrintModal() {
  * Confirm and execute print
  */
 function confirmPrint() {
+    isPrinting = true;
     closePrintModal();
     setTimeout(() => {
         window.print();
+        setTimeout(() => {
+            isPrinting = false;
+        }, 1000);
     }, 300);
 }
 
@@ -322,14 +334,6 @@ function showToast(message, type = 'info') {
         toast.style.transform = 'translateX(100px)';
         setTimeout(() => toast.remove(), 300);
     }, 4000);
-}
-
-/**
- * Toggle declaration checkboxes state
- */
-function toggleDeclaration() {
-    // This function can be expanded if needed
-    console.log('Declaration updated');
 }
 
 // Export functions for HTML onclick
