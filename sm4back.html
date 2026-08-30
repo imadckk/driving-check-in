@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#290C73">
+    <title>Student Record - KPP03</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        * {
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        
+        .safe-top {
+            padding-top: env(safe-area-inset-top);
+        }
+        
+        .safe-bottom {
+            padding-bottom: env(safe-area-inset-bottom);
+        }
+        
+        .input-mobile {
+            font-size: 16px;
+            padding: 14px 16px;
+            border: 2px solid #e5e7eb;
+            border-radius: 10px;
+            width: 100%;
+            transition: all 0.2s ease;
+            background: #ffffff;
+        }
+        
+        .input-mobile:focus {
+            outline: none;
+            border-color: #FACC15;
+            box-shadow: 0 0 0 3px rgba(250, 204, 21, 0.1);
+        }
+        
+        .btn-primary-mobile {
+            background: #FACC15;
+            color: #290C73;
+            font-size: 17px;
+            font-weight: 600;
+            padding: 16px 24px;
+            border-radius: 12px;
+            border: none;
+            width: 100%;
+            min-height: 56px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            box-shadow: 0 4px 0 0 #d4a000;
+            position: relative;
+            transform: translateY(0);
+        }
+        
+        .btn-primary-mobile:active {
+            transform: translateY(3px);
+            box-shadow: 0 1px 0 0 #d4a000;
+        }
+        
+        .btn-primary-mobile:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        
+        .btn-secondary-mobile {
+            background: #e5e7eb;
+            color: #1f2937;
+            font-size: 17px;
+            font-weight: 600;
+            padding: 16px 24px;
+            border-radius: 12px;
+            border: none;
+            width: 100%;
+            min-height: 56px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+        
+        .btn-secondary-mobile:active {
+            background: #d1d5db;
+        }
+        
+        .table-container {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+        
+        .record-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+            min-width: 750px;
+        }
+        
+        .record-table th,
+        .record-table td {
+            border: 1px solid #d1d5db;
+            padding: 6px 4px;
+            text-align: center;
+            vertical-align: middle;
+        }
+        
+        .record-table th {
+            background: #290C73;
+            color: white;
+            font-weight: 600;
+            font-size: 11px;
+            padding: 8px 4px;
+        }
+        
+        .record-table td {
+            background: white;
+        }
+        
+        .record-table .empty-cell {
+            background: #f9fafb;
+            color: #9ca3af;
+            font-size: 11px;
+        }
+        
+        .record-table .filled-cell {
+            background: #f0fdf4;
+        }
+        
+        .record-table .highlight-row {
+            background: #fef3c7;
+        }
+        
+        .record-table .signature-cell {
+            min-height: 30px;
+        }
+        
+        @media print {
+            .no-print {
+                display: none !important;
+            }
+            .print-only {
+                display: block !important;
+            }
+            body {
+                background: white;
+                padding: 20px;
+            }
+            .record-table th {
+                background: #290C73 !important;
+                color: white !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+            .record-table td {
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+            .record-table .filled-cell {
+                background: #f0fdf4 !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+            .record-table .empty-cell {
+                background: #f9fafb !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+            .checkbox-print {
+                display: inline-block !important;
+            }
+            .checkbox-print input[type="checkbox"] {
+                transform: scale(1.2);
+                margin: 0 4px;
+            }
+        }
+        
+        .print-only {
+            display: none;
+        }
+        
+        /* Spinner animation */
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .spinner {
+            animation: spin 1s linear infinite;
+        }
+
+        .summary-card {
+            background: linear-gradient(135deg, #290C73 0%, #1e0854 100%);
+            color: white;
+            border-radius: 12px;
+            padding: 16px 20px;
+            margin-bottom: 20px;
+        }
+
+        .summary-card .label {
+            font-size: 12px;
+            opacity: 0.8;
+        }
+
+        .summary-card .value {
+            font-size: 20px;
+            font-weight: 700;
+        }
+
+        .modal-backdrop {
+            backdrop-filter: blur(4px);
+            -webkit-backdrop-filter: blur(4px);
+        }
+
+        .modal-mobile {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: white;
+            border-radius: 20px 20px 0 0;
+            padding: 24px;
+            padding-bottom: calc(24px + env(safe-area-inset-bottom));
+            transform: translateY(100%);
+            transition: transform 0.3s ease;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-mobile.active {
+            transform: translateY(0);
+        }
+
+        /* Checkbox styling */
+        .custom-checkbox {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            padding: 8px 12px;
+            border-radius: 8px;
+            background: #f9fafb;
+            transition: background 0.2s;
+        }
+
+        .custom-checkbox:hover {
+            background: #f3f4f6;
+        }
+
+        .custom-checkbox input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            accent-color: #290C73;
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+
+        .declaration-section {
+            background: #f9fafb;
+            border-radius: 8px;
+            padding: 16px;
+            margin-top: 16px;
+        }
+
+        .declaration-section .label {
+            font-size: 13px;
+            font-weight: 600;
+            color: #1f2937;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen safe-top safe-bottom">
+    
+    <!-- Header -->
+    <header class="bg-[#290C73] text-white px-4 py-3 sticky top-0 z-40 shadow-lg no-print">
+        <div class="flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-12 h-12 bg-white/10 rounded-lg flex items-center justify-center flex-shrink-0 backdrop-blur-sm">
+                    <span class="text-xs font-bold">ADC</span>
+                </div>
+                <div>
+                    <h1 class="text-base font-bold leading-tight">Student Record</h1>
+                    <p class="text-xs opacity-80">KPP03 Lesson History</p>
+                </div>
+            </div>
+            <button onclick="window.location.href='index.html'" 
+                    class="p-2 hover:bg-white/10 rounded-lg transition-colors flex-shrink-0"
+                    aria-label="Back to check-in">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+                </svg>
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="px-4 py-6 pb-8">
+        <!-- Search Section -->
+        <div class="bg-white rounded-xl shadow-sm p-4 mb-6 no-print">
+            <div class="space-y-4">
+                <div>
+                    <label for="search-student-id" class="text-sm font-semibold text-gray-700 block mb-2">
+                        Student IC / Passport Number
+                    </label>
+                    <input type="text" 
+                           id="search-student-id" 
+                           class="input-mobile"
+                           placeholder="e.g., 990101012345"
+                           autocomplete="off"
+                           oninput="this.value = this.value.toUpperCase()">
+                </div>
+                
+                <div class="grid grid-cols-2 gap-3">
+                    <button onclick="searchStudent()" 
+                            class="btn-primary-mobile flex items-center justify-center gap-2">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                        </svg>
+                        Search
+                    </button>
+                    <button onclick="clearSearch()" 
+                            class="btn-secondary-mobile flex items-center justify-center gap-2">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                        Clear
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Results Section -->
+        <div id="results-container">
+            <!-- Student Info Card -->
+            <div id="student-info" class="hidden">
+                <div class="summary-card">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <div class="label">Student Name</div>
+                            <div class="value" id="student-name-display">-</div>
+                        </div>
+                        <div>
+                            <div class="label">Student IC</div>
+                            <div class="value" id="student-id-display">-</div>
+                        </div>
+                        <div>
+                            <div class="label">Total Lessons</div>
+                            <div class="value" id="total-lessons-display">0</div>
+                        </div>
+                        <div>
+                            <div class="label">Total Hours</div>
+                            <div class="value" id="total-hours-display">0</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Table Section -->
+            <div id="table-container" class="hidden">
+                <div class="bg-white rounded-xl shadow-sm p-4 overflow-hidden">
+                    <div class="flex justify-between items-center mb-4 no-print">
+                        <h3 class="font-semibold text-gray-900">KPP03 Lesson Record</h3>
+                        <button onclick="printRecord()" 
+                                class="text-sm bg-[#290C73] text-white px-4 py-2 rounded-lg hover:bg-[#1e0854] transition-colors flex items-center gap-2">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path>
+                            </svg>
+                            Print
+                        </button>
+                    </div>
+
+                    <div class="table-container">
+                        <table class="record-table" id="lesson-table">
+                            <thead>
+                                <tr>
+                                    <th rowspan="2" style="width: 12%;">TARIKH</th>
+                                    <th colspan="2" style="width: 16%;">MASA</th>
+                                    <th rowspan="2" style="width: 12%;">NOMBOR<br>KENDERAAN</th>
+                                    <th rowspan="2" style="width: 10%;">JUMLAH<br>JAM<br>BELAJAR</th>
+                                    <th rowspan="2" style="width: 12%;">MODUL <br>PELAJARAN</th>
+                                    <th rowspan="2" style="width: 12%;">T/TANGAN<br>PELAJAR</th>
+                                    <th colspan="2" style="width: 16%;">PENGAJAR</th>
+                                </tr>
+                                <tr>
+                                    <th style="width: 8%;">MULA</th>
+                                    <th style="width: 8%;">TAMAT</th>
+                                    <th style="width: 8%;">NO. KP</th>
+                                    <th style="width: 8%;">T/TANGAN</th>
+                                </tr>
+                            </thead>
+                            <tbody id="table-body">
+                                <!-- Rows will be populated by JavaScript -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Declaration Section with Checkboxes -->
+                <div class="bg-white rounded-xl shadow-sm p-4 mt-4 declaration-section no-print" id="declaration-section">
+                    <div class="space-y-4">
+                        <div class="flex items-start gap-3 p-3 bg-white rounded-lg border border-gray-200">
+                            <input type="checkbox" id="declaration-competency" class="mt-1 w-5 h-5 accent-[#290C73]">
+                            <div>
+                                <label for="declaration-competency" class="text-sm font-medium text-gray-700 cursor-pointer">
+                                    Layak untuk menduduki ujian kekompetenan memandu yang dikendalikan oleh JPJ
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-start gap-3 p-3 bg-white rounded-lg border border-gray-200">
+                            <input type="checkbox" id="declaration-retraining" class="mt-1 w-5 h-5 accent-[#290C73]">
+                            <div>
+                                <label for="declaration-retraining" class="text-sm font-medium text-gray-700 cursor-pointer">
+                                    Perlu latihan KPP02 atau/dan KPP03 dan ujian kelayakan/penilaian semula sebelum layak menduduki ujian kekompetenan memandu
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-start gap-3 p-3 bg-white rounded-lg border border-gray-200">
+                            <input type="checkbox" id="declaration-confirm" class="mt-1 w-5 h-5 accent-[#290C73]">
+                            <div>
+                                <label for="declaration-confirm" class="text-sm font-medium text-gray-700 cursor-pointer">
+                                    Saya mengesahkan bahawa maklumat di atas adalah benar
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- No Results Message -->
+            <div id="no-results" class="hidden">
+                <div class="bg-white rounded-xl shadow-sm p-8 text-center">
+                    <svg class="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                    <h3 class="text-lg font-semibold text-gray-700 mb-2">No Records Found</h3>
+                    <p class="text-gray-500">No KPP03 lessons found for this student.</p>
+                </div>
+            </div>
+
+            <!-- Loading State -->
+            <div id="loading-state" class="hidden">
+                <div class="bg-white rounded-xl shadow-sm p-8 text-center">
+                    <div class="inline-block animate-spin rounded-full h-12 w-12 border-4 border-[#290C73] border-t-transparent"></div>
+                    <p class="text-gray-500 mt-4">Loading student records...</p>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Print Modal -->
+    <div id="print-modal" class="fixed inset-0 bg-black/50 modal-backdrop hidden z-50" onclick="if(event.target === this) closePrintModal()">
+        <div class="modal-mobile" id="print-modal-content">
+            <div class="text-center">
+                <div class="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <svg class="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path>
+                    </svg>
+                </div>
+                <h3 class="text-xl font-bold text-gray-900 mb-2">Print Record</h3>
+                <p class="text-gray-600 mb-6">Print the KPP03 lesson record for this student?</p>
+                <div class="grid grid-cols-2 gap-3">
+                    <button onclick="closePrintModal()" 
+                            class="py-3 px-4 bg-gray-200 text-gray-800 font-semibold rounded-lg hover:bg-gray-300 transition-colors">
+                        Cancel
+                    </button>
+                    <button onclick="confirmPrint()" 
+                            class="py-3 px-4 bg-[#290C73] text-white font-semibold rounded-lg hover:bg-[#1e0854] transition-colors">
+                        Print
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="student-record.js"></script>
+</body>
+</html>
